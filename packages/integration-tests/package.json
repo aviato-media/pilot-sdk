@@ -1,0 +1,21 @@
+{
+  "name": "@aviato-media/pilot-integration-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test __tests__/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aviato-media/pilot-client-sdk": "workspace:*",
+    "@aviato-media/pilot-core": "workspace:*",
+    "@aviato-media/pilot-server-sdk": "workspace:*",
+    "@aviato-media/pilot-tower-sdk": "workspace:*"
+  },
+  "// @bun-upgrade": "",
+  "devDependencies": {
+    "bun-types": "^1.3.14",
+    "typescript": "^5.9.3"
+  }
+}
