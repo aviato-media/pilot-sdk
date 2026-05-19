@@ -16,15 +16,15 @@ This monorepo holds the SDKs every Pilot's License integration needs: one for cl
 
 ## Why this exists
 
-Aviato wants to make sharing your media with friends and family effortless, and we also believe Aviato should have no insight into what you share. Your videos, images, and messages are yours.
+Aviato wants to make sharing your media with friends and family effortless, and we also believe Aviato should have no insight into what you share. Your videos, images, and text are yours.
 
 These two goals usually conflict. A central service that handles login and synchronization typically also sees the data it syncs.
 
-Pilot's License resolves that tension. Each user holds a single license in a vault hosted by the [Aviato Tower](https://tower.aviato.media), and that license proves "this is me" to every Aviato media server you link. Every signature it produces comes from a master key that lives encrypted in your vault and surfaces only briefly in memory on your device, never on a server. The Tower relays the sealed bundles your servers and clients need to reach each other, but it cannot read them. No media server learns about another, and the Tower learns nothing about what is inside the bundles it forwards.
+Pilot's License resolves that tension. Each user holds a single license in a vault hosted by the [Aviato Tower](https://tower.aviato.media), and that license proves "this is me" to every Aviato media server you link. Every signature it produces comes from a master key that lives encrypted in your vault and surfaces only briefly in memory on your device, never on a server controlled by [aviato.media](https://aviato.media). The Tower relays the sealed bundles your servers and clients need to reach each other, but it cannot read them. No media server learns about another, and the Tower learns nothing about what is inside the bundles it forwards.
 
 ## How it works
 
-1. **Register with the Tower.** You create an Aviato Tower account using a passkey. Your browser generates a master key, encrypts it with a key derived from your passkey via the WebAuthn [PRF extension](https://bitwarden.com/blog/prf-webauthn-and-its-role-in-passkeys/), and stores the ciphertext in your vault. The plaintext master key never leaves your device.
+1. **Register with the Tower.** You create an Aviato Identity by signing up on the [Aviato Tower](https://tower.aviato.media) using a passkey. Your browser generates a master key, encrypts it with a key derived from your passkey via the WebAuthn [PRF extension](https://bitwarden.com/blog/prf-webauthn-and-its-role-in-passkeys/), and stores the ciphertext in your vault. The plaintext master key never leaves your device.
 
 2. **Pair a media server.** When you sign in to an Aviato media server, the server uses the [server SDK](packages/server-sdk) to begin a pairing handshake with your Tower. You authorize the pairing inside Tower by tapping your passkey, which unwraps your master key for just long enough to sign a delegation certificate and seal the server's connection info into your vault. The server now recognizes your Aviato identity. The Tower learns only that pairing happened, not what the server is or what it holds.
 
@@ -41,16 +41,3 @@ bun run test
 bun run typecheck
 bun run lint
 ```
-
-## Releasing
-
-Releases are automated. Every merge to `main` runs `semantic-release` in CI: it parses the new commits against the [Conventional Commits](https://www.conventionalcommits.org/) spec, computes the next semver, bumps every publishable package to that single synced version, builds, publishes them to npm under `@aviato-media/*`, writes `CHANGELOG.md`, and creates a matching git tag + GitHub release.
-
-There is no manual bump step. Just land conventional commits on `main`:
-
-- `fix: …` → patch
-- `feat: …` → minor
-- `feat!: …` or any commit with `BREAKING CHANGE:` in the footer → major
-- `chore:`, `docs:`, `refactor:`, `test:`, `ci:` → no release
-
-If a release cycle produces no release-worthy commits, semantic-release exits cleanly without publishing.
