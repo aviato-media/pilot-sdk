@@ -12,6 +12,7 @@ import {
   generateX25519Keypair,
   hexEncode,
   openPairingResponse,
+  PublicPrivateKey,
   randomAesKey,
 } from '@aviato-media/pilot-core'
 import { describe, expect, test } from 'bun:test'
@@ -84,8 +85,7 @@ describe('PairingService end-to-end', () => {
     const store = new MemoryPairingRequestStore()
     const service = new PairingService(tower, store, {
       serverId: 'srv_test',
-      serverPrivKey: server.privateKey.toRaw(),
-      serverPubKey: server.publicKey.toRaw(),
+      serverKey: server,
       towerPairingBaseUrl: 'https://tower.test',
     })
 
@@ -154,8 +154,7 @@ describe('PairingService end-to-end', () => {
         displayName: 'My Lovely Server',
         serverIcon: 'https://media.example.com/icon.png',
         serverId: 'srv_dn',
-        serverPrivKey: new Uint8Array(32),
-        serverPubKey: new Uint8Array(32),
+        serverKey: PublicPrivateKey.fromBytes(new Uint8Array(32), new Uint8Array(32)),
         towerPairingBaseUrl: 'https://tower.test',
       },
     )
@@ -194,8 +193,7 @@ describe('PairingService end-to-end', () => {
       new MemoryPairingRequestStore(),
       {
         serverId: 'srv_anon',
-        serverPrivKey: new Uint8Array(32),
-        serverPubKey: new Uint8Array(32),
+        serverKey: PublicPrivateKey.fromBytes(new Uint8Array(32), new Uint8Array(32)),
         towerPairingBaseUrl: 'https://tower.test',
       },
     )
@@ -246,8 +244,7 @@ describe('PairingService end-to-end', () => {
       new MemoryPairingRequestStore(),
       {
         serverId: 's',
-        serverPrivKey: new Uint8Array(32),
-        serverPubKey: new Uint8Array(32),
+        serverKey: PublicPrivateKey.fromBytes(new Uint8Array(32), new Uint8Array(32)),
         towerPairingBaseUrl: 'https://tower.test',
       },
     )
@@ -267,8 +264,7 @@ describe('PairingService end-to-end', () => {
       new MemoryPairingRequestStore(),
       {
         serverId: 's',
-        serverPrivKey: server.privateKey.toRaw(),
-        serverPubKey: server.publicKey.toRaw(),
+        serverKey: server,
         towerPairingBaseUrl: 'https://tower.test',
       },
     )
@@ -311,8 +307,7 @@ describe('PairingService end-to-end', () => {
       new MemoryPairingRequestStore(),
       {
         serverId: 's',
-        serverPrivKey: server.privateKey.toRaw(),
-        serverPubKey: server.publicKey.toRaw(),
+        serverKey: server,
         towerPairingBaseUrl: 'https://tower.test',
       },
     )
@@ -362,8 +357,7 @@ describe('PairingService end-to-end', () => {
       new MemoryPairingRequestStore(),
       {
         serverId: 's',
-        serverPrivKey: new Uint8Array(32),
-        serverPubKey: new Uint8Array(32),
+        serverKey: PublicPrivateKey.fromBytes(new Uint8Array(32), new Uint8Array(32)),
         towerPairingBaseUrl: 'https://tower.test',
       },
     )

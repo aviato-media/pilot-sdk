@@ -165,8 +165,7 @@ describe('full cross-package handshake', () => {
       new MemoryPairingRequestStore(),
       {
         serverId: 'srv_int',
-        serverPrivKey: server.privateKey.toRaw(),
-        serverPubKey: server.publicKey.toRaw(),
+        serverKey: server,
         towerPairingBaseUrl: 'https://tower.test',
       },
     )

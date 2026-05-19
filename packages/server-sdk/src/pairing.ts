@@ -11,6 +11,7 @@
 import type {
   MasterSignedAssertionEnvelope,
   PairingResponsePayload,
+  PublicPrivateKey,
 } from '@aviato-media/pilot-core'
 import { buildPairingResponse, pubkeyFromHex } from '@aviato-media/pilot-core'
 
@@ -25,10 +26,8 @@ export type VerifiedPairingAssertion
 
 export interface PairingHostConfig {
   readonly serverId: string
-  /** Raw 32-byte server Ed25519 pubkey. */
-  readonly serverPubKey: Uint8Array
-  /** Raw 32-byte server Ed25519 private key. */
-  readonly serverPrivKey: Uint8Array
+  /** Server Ed25519 keypair. */
+  readonly serverKey: PublicPrivateKey
   /** Where Tower-web is hosted (used to build the pairingUrl). */
   readonly towerPairingBaseUrl: string
   readonly displayName?: string
@@ -138,8 +137,8 @@ export class PairingService {
     const payload = await buildPairingResponse({
       connInfoKey: input.connInfoKey,
       expectedUserEncPubKeyHex: input.verifiedAssertion.userEncPubKey,
-      serverPrivKey: this.config.serverPrivKey,
-      serverPubKey: this.config.serverPubKey,
+      serverPrivKey: this.config.serverKey.privateKey,
+      serverPubKey: this.config.serverKey.publicKey,
       userEncPubKey,
     })
     await this.tower.postPairingResponse(input.requestId, payload)
