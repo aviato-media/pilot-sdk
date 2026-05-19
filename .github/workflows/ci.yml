@@ -73,17 +73,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # `bun publish` does not expand ${NODE_AUTH_TOKEN} from .npmrc the way
-      # `npm publish` does (oven-sh/bun#14824). Write the literal token into
-      # ~/.npmrc up front so the publish loop in release.config.cjs auths
-      # cleanly. Scope line is defense-in-depth — every package also pins
-      # `publishConfig.registry`, but the explicit scope is cheap insurance.
       - name: Configure npm auth
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$HOME/.npmrc"
-          echo "@aviato-media:registry=https://registry.npmjs.org/" >> "$HOME/.npmrc"
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+          echo "@aviato-media:registry=https://registry.npmjs.org/" >> .npmrc
 
       - name: Release
         env:
