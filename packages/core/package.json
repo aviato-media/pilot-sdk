@@ -1,6 +1,6 @@
 {
   "name": "@aviato-media/pilot-core",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Aviato Pilot's License — cross-system crypto, schemas, and protocol contract. Shared internal core for the four Pilot SDKs (client / client-react / server / tower).",
   "license": "MIT",
   "repository": {

@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/aviato-media/pilot-sdk/compare/v1.0.1...v1.0.2) (2026-05-19)
+
+### Bug Fixes
+
+* PairingService should accept a PublicPrivateKey object ([00b5a3f](https://github.com/aviato-media/pilot-sdk/commit/00b5a3f221bd39064d01bd83a2274624ffda8d07))
+
 ## [1.0.1](https://github.com/aviato-media/pilot-sdk/compare/v1.0.0...v1.0.1) (2026-05-19)
 
 ### Bug Fixes
