@@ -125,6 +125,14 @@ export class PrivateKey extends Key {
       }
       return input
     }
+    if (typeof input === 'string') {
+      if (!HEX_64.test(input)) {
+        throw new Error(
+          `PrivateKey: expected 64 lowercase hex chars (32-byte pubkey), got ${input.length} chars`,
+        )
+      }
+      return hexDecode(input)
+    }
     throw new Error(
       `PrivateKey: expected PrivateKey | Uint8Array (32 bytes), got ${typeof input === 'object' ? Object.prototype.toString.call(input) : typeof input}`,
     )
@@ -148,6 +156,10 @@ export class PrivateKey extends Key {
     } catch {
       return false
     }
+  }
+
+  static fromHex (hex: string): PrivateKey {
+    return new PrivateKey(hex)
   }
 
   static fromBytes (bytes: Uint8Array): PrivateKey {
@@ -195,7 +207,7 @@ export class X25519Keypair extends PublicPrivateKey {}
 
 export type PublicKeyLike = PublicKey | Uint8Array | string
 
-export type PrivateKeyLike = PrivateKey | Uint8Array
+export type PrivateKeyLike = PrivateKey | Uint8Array | string
 
 export function asPublicKey (input: PublicKeyLike): PublicKey {
   return input instanceof PublicKey ? input : new PublicKey(input)
