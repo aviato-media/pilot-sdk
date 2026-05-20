@@ -1,3 +1,9 @@
+## [1.1.1](https://github.com/aviato-media/pilot-sdk/compare/v1.1.0...v1.1.1) (2026-05-20)
+
+### Bug Fixes
+
+* ensure all packages rely on the "next" version of pilot-core ([48cc37a](https://github.com/aviato-media/pilot-sdk/commit/48cc37a52cc43ac10d2f1b608b9b15197ac80e66))
+
 ## [1.1.0](https://github.com/aviato-media/pilot-sdk/compare/v1.0.2...v1.1.0) (2026-05-20)
 
 ### Features
