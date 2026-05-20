@@ -4,22 +4,24 @@
 
 import type {
   MasterSignedAssertionEnvelope,
+  PrivateKeyLike,
+  PublicKeyLike,
   ServerLinkAssertionPayload,
   ServerSignInAssertionPayload,
 } from '@aviato-media/pilot-core'
-import { buildPairingAssertion, hexEncode } from '@aviato-media/pilot-core'
+import { asPublicKey, buildPairingAssertion } from '@aviato-media/pilot-core'
 
 export interface ApproveServerLinkInput {
   readonly requestId: string
-  /** Raw 32-byte Ed25519 server pubkey. */
-  readonly serverPubKey: Uint8Array
+  /** Ed25519 server pubkey. */
+  readonly serverPubKey: PublicKeyLike
   readonly userId: string
-  /** Raw 32-byte Ed25519 user master pubkey. */
-  readonly userPubKey: Uint8Array
-  /** Raw 32-byte X25519 user encryption pubkey. */
-  readonly userEncPubKey: Uint8Array
-  /** Raw 32-byte Ed25519 user master private key. */
-  readonly masterPrivKey: Uint8Array
+  /** Ed25519 user master pubkey. */
+  readonly userPubKey: PublicKeyLike
+  /** X25519 user encryption pubkey. */
+  readonly userEncPubKey: PublicKeyLike
+  /** Ed25519 user master private key. */
+  readonly masterPrivKey: PrivateKeyLike
   /** Defaults to Date.now() (ms). */
   readonly ts?: number
 }
@@ -28,11 +30,11 @@ export function approveServerLink (input: ApproveServerLinkInput): MasterSignedA
   const payload: ServerLinkAssertionPayload = {
     kind: 'server-link',
     requestId: input.requestId,
-    serverPubKey: hexEncode(input.serverPubKey),
+    serverPubKey: asPublicKey(input.serverPubKey).toHex(),
     ts: input.ts ?? Date.now(),
-    userEncPubKey: hexEncode(input.userEncPubKey),
+    userEncPubKey: asPublicKey(input.userEncPubKey).toHex(),
     userId: input.userId,
-    userPubKey: hexEncode(input.userPubKey),
+    userPubKey: asPublicKey(input.userPubKey).toHex(),
     v: 1,
   }
   return buildPairingAssertion({
@@ -45,11 +47,11 @@ export function approveServerSignIn (input: ApproveServerLinkInput): MasterSigne
   const payload: ServerSignInAssertionPayload = {
     kind: 'server-sign-in',
     requestId: input.requestId,
-    serverPubKey: hexEncode(input.serverPubKey),
+    serverPubKey: asPublicKey(input.serverPubKey).toHex(),
     ts: input.ts ?? Date.now(),
-    userEncPubKey: hexEncode(input.userEncPubKey),
+    userEncPubKey: asPublicKey(input.userEncPubKey).toHex(),
     userId: input.userId,
-    userPubKey: hexEncode(input.userPubKey),
+    userPubKey: asPublicKey(input.userPubKey).toHex(),
     v: 1,
   }
   return buildPairingAssertion({
