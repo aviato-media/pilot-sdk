@@ -140,6 +140,7 @@ export class PairingService {
       serverPrivKey: this.config.serverKey.privateKey,
       serverPubKey: this.config.serverKey.publicKey,
       userEncPubKey,
+      userPubKey: input.verifiedAssertion.userPubKey,
     })
     await this.tower.postPairingResponse(input.requestId, payload)
     return payload

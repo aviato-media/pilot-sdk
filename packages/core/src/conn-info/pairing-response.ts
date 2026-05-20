@@ -38,6 +38,13 @@ export interface BuildPairingResponseInput {
   readonly serverPrivKey: PrivateKeyLike
   /** User X25519 encryption pubkey (recipient). */
   readonly userEncPubKey: PublicKeyLike
+  /**
+   * User master Ed25519 pubkey from the verified assertion. Required as a
+   * cross-check: must NOT equal `userEncPubKey`. Both keys are 32 bytes and
+   * structurally indistinguishable, so wiring the master into `userEncPubKey`
+   * by mistake would produce a ciphertext nobody can open.
+   */
+  readonly userPubKey: PublicKeyLike
   readonly issuedAtSec?: number
   /**
    * Cross-check: when provided, must equal `hexEncode(userEncPubKey)`.
@@ -80,14 +87,21 @@ export async function buildPairingResponse (input: BuildPairingResponseInput): P
   const serverPrivKey = asPrivateKey(input.serverPrivKey)
   assertValidRecipient(userEncPubKey.toRaw(), serverPubKey.toRaw())
   const serverPubKeyHex = serverPubKey.toHex()
+  const userEncPubKeyHex = userEncPubKey.toHex()
   if (input.expectedUserEncPubKeyHex !== undefined) {
-    const actualHex = userEncPubKey.toHex()
-    if (actualHex !== input.expectedUserEncPubKeyHex) {
+    if (userEncPubKeyHex !== input.expectedUserEncPubKeyHex) {
       throw new Error(
         'buildPairingResponse: userEncPubKey does not match expectedUserEncPubKeyHex. '
-        + `Got ${actualHex.slice(0, 16)}…, expected ${input.expectedUserEncPubKeyHex.slice(0, 16)}…`,
+        + `Got ${userEncPubKeyHex.slice(0, 16)}…, expected ${input.expectedUserEncPubKeyHex.slice(0, 16)}…`,
       )
     }
+  }
+  const userPubKeyHex = asPublicKey(input.userPubKey).toHex()
+  if (userPubKeyHex === userEncPubKeyHex) {
+    throw new Error(
+      'buildPairingResponse: userEncPubKey equals userPubKey (master Ed25519). '
+      + 'Likely passed assertion.userPubKey where assertion.userEncPubKey was expected.',
+    )
   }
   const sealedPlain: PairingResponseSealed = {
     connInfoKey: base64urlEncode(input.connInfoKey),

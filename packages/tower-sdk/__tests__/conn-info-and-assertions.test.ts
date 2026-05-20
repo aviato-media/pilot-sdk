@@ -145,6 +145,7 @@ describe('approveServerSignIn', () => {
 describe('claimConnInfoKey', () => {
   test('round-trip', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     const userEnc = generateX25519Keypair()
     const K = randomAesKey()
     const payload = await buildPairingResponse({
@@ -152,6 +153,7 @@ describe('claimConnInfoKey', () => {
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: userEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })
     const r = await claimConnInfoKey({
       expectedServerPubKey: server.publicKey,
@@ -170,12 +172,14 @@ describe('claimConnInfoKey', () => {
   test('sig_invalid when expectedServerPubKey is wrong', async () => {
     const server = generateEd25519Keypair()
     const other = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     const userEnc = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: userEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })
     const r = await claimConnInfoKey({
       expectedServerPubKey: other.publicKey,
@@ -193,6 +197,7 @@ describe('claimConnInfoKey', () => {
 
   test('decrypt_failed when userEncPrivKey is wrong (but sig still verifies)', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     const userEnc = generateX25519Keypair()
     const wrong = generateX25519Keypair()
     const payload = await buildPairingResponse({
@@ -200,6 +205,7 @@ describe('claimConnInfoKey', () => {
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: userEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })
     const r = await claimConnInfoKey({
       expectedServerPubKey: server.publicKey,

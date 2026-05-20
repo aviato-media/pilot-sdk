@@ -271,6 +271,28 @@ describe('pairing assertion build/verify', () => {
       expect(verified.error).toBe('wrong_server')
     }
   })
+
+  test('rejects assertion where userEncPubKey equals userPubKey', () => {
+    // Malformed assertion: master signing key reused as encryption key.
+    // A downstream sealedbox to this key would be undecryptable. Reject upfront.
+    const malformed = {
+      ...basePayload,
+      userEncPubKey: userPubHex,
+    }
+    const env = buildPairingAssertion({
+      masterPrivKey: user.privateKey,
+      payload: malformed,
+    })
+    const verified = verifyPairingAssertion(env, {
+      expectedKind: 'server-link',
+      expectedRequestId: 'req_abc',
+      expectedServerPubKey: server.publicKey,
+    })
+    expect(verified.ok).toBe(false)
+    if (!verified.ok) {
+      expect(verified.error).toBe('enc_pubkey_equals_master')
+    }
+  })
 })
 
 describe('conn-info AEAD seal/open', () => {
@@ -353,6 +375,7 @@ describe('conn-info AEAD seal/open', () => {
 describe('pairing-response leg (server → user K delivery)', () => {
   test('round-trip', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     const userEnc = generateX25519Keypair()
     const K = randomAesKey()
     const payload = await buildPairingResponse({
@@ -360,6 +383,7 @@ describe('pairing-response leg (server → user K delivery)', () => {
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: userEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })
     const opened = await openPairingResponse({
       expectedServerPubKey: server.publicKey,
@@ -374,12 +398,14 @@ describe('pairing-response leg (server → user K delivery)', () => {
 
   test('wrong server pubkey fails sig check', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     const userEnc = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: userEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })
     const other = generateEd25519Keypair()
     const opened = await openPairingResponse({
@@ -392,32 +418,38 @@ describe('pairing-response leg (server → user K delivery)', () => {
 
   test('refuses an all-zero userEncPubKey', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: new Uint8Array(32),
+      userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/all zeros/i)
   })
 
   test('refuses a userEncPubKey of wrong length', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: new Uint8Array(16),
+      userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/32 bytes/i)
   })
 
   test('refuses sealing K to the server\'s own pubkey', async () => {
     // Catches "I passed serverPubKey instead of userEncPubKey" misuse.
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: server.publicKey,
+      userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/serverPubKey|own server key/i)
   })
 
@@ -426,6 +458,7 @@ describe('pairing-response leg (server → user K delivery)', () => {
     // key X but mistakenly passes key Y to be sealed against. With the
     // expected-hex cross-check, the SDK refuses before sealing.
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     const userEnc = generateX25519Keypair()
     const otherEnc = generateX25519Keypair()
     await expect(buildPairingResponse({
@@ -434,6 +467,7 @@ describe('pairing-response leg (server → user K delivery)', () => {
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: otherEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/does not match|expectedUserEncPubKeyHex/i)
     // Also reject when caller swaps the assertion's key against a real-but-wrong recipient.
     await expect(buildPairingResponse({
@@ -442,7 +476,24 @@ describe('pairing-response leg (server → user K delivery)', () => {
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: otherEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/does not match|expectedUserEncPubKeyHex/i)
+  })
+
+  test('refuses sealing K to the user\'s master Ed25519 pubkey', async () => {
+    // Catches "I passed assertion.userPubKey instead of assertion.userEncPubKey".
+    // Both are 32 bytes; without this check, x25519.getSharedSecret would
+    // happily treat the Ed25519 key as a Montgomery u-coordinate and produce
+    // a ciphertext nobody can open.
+    const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
+    await expect(buildPairingResponse({
+      connInfoKey: randomAesKey(),
+      serverPrivKey: server.privateKey,
+      serverPubKey: server.publicKey,
+      userEncPubKey: userMaster.publicKey,
+      userPubKey: userMaster.publicKey,
+    })).rejects.toThrow(/equals userPubKey|master Ed25519/i)
   })
 })
 
@@ -584,12 +635,14 @@ describe('utilities', () => {
 describe('adversarial: openPairingResponse rejects tampered sig', () => {
   test('flipping one bit in sig yields sig_invalid', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     const userEnc = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: userEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })
     // Flip the first byte of the signature.
     const sigBytes = base64urlDecode(payload.sig)
@@ -611,12 +664,14 @@ describe('adversarial: openPairingResponse rejects tampered sig', () => {
 
   test('tampering ct without re-signing yields sig_invalid', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     const userEnc = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: userEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })
     // Replace ct with a different (well-formed) base64url string.
     const tamperedCtBytes = base64urlDecode(payload.sealed.ct)
@@ -908,12 +963,14 @@ describe('PublicKeyLike at SDK boundaries (smoke)', () => {
   })
   test('openPairingResponse accepts PublicKey instance as expectedServerPubKey', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     const userEnc = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: userEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })
     const result = await openPairingResponse({
       expectedServerPubKey: new PublicKey(server.publicKey),
@@ -1396,33 +1453,40 @@ describe('verifyClientCert error branches', () => {
 describe('pairing-response: assertValidRecipient + sealed-shape errors', () => {
   test('refuses an all-zero userEncPubKey', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: new Uint8Array(32),
+      userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/all zeros/)
   })
   test('refuses a userEncPubKey of wrong length', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: new Uint8Array(31),
+      userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/32 bytes/)
   })
   test('refuses sealing K to the server\'s own pubkey', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: server.publicKey,
+      userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/equals serverPubKey/)
   })
   test('refuses when expectedUserEncPubKeyHex does not match the userEncPubKey', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     const userEnc = generateX25519Keypair()
     const otherEnc = generateX25519Keypair()
     await expect(buildPairingResponse({
@@ -1431,10 +1495,12 @@ describe('pairing-response: assertValidRecipient + sealed-shape errors', () => {
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: userEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/userEncPubKey does not match/)
   })
   test('openPairingResponse decrypt_failed when sig verifies but wrong recipient priv', async () => {
     const server = generateEd25519Keypair()
+    const userMaster = generateEd25519Keypair()
     const userEnc = generateX25519Keypair()
     const other = generateX25519Keypair()
     const payload = await buildPairingResponse({
@@ -1442,6 +1508,7 @@ describe('pairing-response: assertValidRecipient + sealed-shape errors', () => {
       serverPrivKey: server.privateKey,
       serverPubKey: server.publicKey,
       userEncPubKey: userEnc.publicKey,
+      userPubKey: userMaster.publicKey,
     })
     const r = await openPairingResponse({
       expectedServerPubKey: server.publicKey,

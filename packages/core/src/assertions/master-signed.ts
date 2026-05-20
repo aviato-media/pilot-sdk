@@ -48,6 +48,7 @@ export type AssertionVerifyError
   | 'wrong_request_id'
   | 'signature_invalid'
   | 'user_pubkey_mismatch'
+  | 'enc_pubkey_equals_master'
   | 'stale'
 
 export interface VerifyAssertionOptions {
@@ -121,6 +122,19 @@ export function verifyPairingAssertion (
     return {
       ok: false,
       error: 'signature_invalid',
+    }
+  }
+
+  // Master Ed25519 (userPubKey) and X25519 encryption key (userEncPubKey)
+  // are distinct keys on the wire. If they match, the assertion is malformed
+  // and using userEncPubKey as a sealedbox recipient would silently produce
+  // a ciphertext only the (non-existent) holder of an X25519 priv for the
+  // master can open — i.e. nobody. Reject post-signature so this only fires
+  // on authenticated payloads.
+  if (payload.userPubKey === payload.userEncPubKey) {
+    return {
+      ok: false,
+      error: 'enc_pubkey_equals_master',
     }
   }
 
