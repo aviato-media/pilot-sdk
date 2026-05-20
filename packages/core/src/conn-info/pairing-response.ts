@@ -2,10 +2,10 @@
 // Server sealedboxes K to userEncPubKey and signs the sealed envelope
 // (prefixed by hex serverPubKey) with serverPrivKey.
 
-import { base64urlDecode, base64urlEncode, ENCODER, jcs } from '../crypto/encoding.js'
+import { base64urlDecode, base64urlEncode, DECODER, ENCODER, jcs } from '../crypto/encoding.js'
 import type { PrivateKeyLike, PublicKeyLike } from '../crypto/keys.js'
 import { asPrivateKey, asPublicKey } from '../crypto/keys.js'
-import { aviatoSealedBoxDecryptJson, aviatoSealedBoxEncryptWithSelfCheck, x25519PubFromPriv } from '../crypto/sealedbox.js'
+import { aviatoSealedBoxDecrypt, aviatoSealedBoxEncryptWithSelfCheck, x25519PubFromPriv } from '../crypto/sealedbox.js'
 import { ed25519Sign, ed25519Verify } from '../crypto/signing.js'
 import type {
   PairingResponsePayload,
@@ -130,6 +130,7 @@ export type OpenPairingResponseResult
 export type OpenPairingResponseError
   = | 'sig_invalid'
   | 'decrypt_failed'
+  | 'payload_not_json'
   | 'shape_invalid'
   | 'inner_server_mismatch'
   | 'recipient_priv_mismatch'
@@ -173,14 +174,23 @@ export async function openPairingResponse (input: OpenPairingResponseInput): Pro
       }
     }
   }
-  const decoded = await aviatoSealedBoxDecryptJson<unknown>({
+  const decodedJson = await aviatoSealedBoxDecrypt({
     box: input.payload.sealed,
-    recipientPriv: userEncPrivKey.toRaw(),
+    recipientPriv: userEncPrivKey,
   })
-  if (decoded === null) {
+  if (decodedJson === null) {
     return {
       ok: false,
       error: 'decrypt_failed',
+    }
+  }
+  let decoded: unknown
+  try {
+    decoded = JSON.parse(DECODER.decode(decodedJson))
+  } catch {
+    return {
+      ok: false,
+      error: 'payload_not_json',
     }
   }
   const parsed = PairingResponseSealedSchema.safeParse(decoded)
