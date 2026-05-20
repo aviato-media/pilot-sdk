@@ -107,12 +107,11 @@ describe('approveServerSignIn', () => {
     const userEnc = generateX25519Keypair()
     const server = generateEd25519Keypair()
     const env = approveServerSignIn({
-      masterPrivKey: user.privateKey.toRaw(),
       requestId: 'req_signin_tower',
       serverPubKey: server.publicKey.toRaw(),
       userEncPubKey: userEnc.publicKey.toRaw(),
       userId: 'user_test',
-      userPubKey: user.publicKey.toRaw(),
+      userKey: user,
     })
     const r = verifyPairingAssertion(env, {
       expectedKind: 'server-sign-in',
@@ -126,12 +125,11 @@ describe('approveServerSignIn', () => {
     const userEnc = generateX25519Keypair()
     const server = generateEd25519Keypair()
     const env = approveServerLink({
-      masterPrivKey: user.privateKey.toRaw(),
       requestId: 'req_link_tower',
       serverPubKey: server.publicKey.toRaw(),
       userEncPubKey: userEnc.publicKey.toRaw(),
       userId: 'user_test',
-      userPubKey: user.publicKey.toRaw(),
+      userKey: user,
     })
     const r = verifyPairingAssertion(env, {
       expectedKind: 'server-link',

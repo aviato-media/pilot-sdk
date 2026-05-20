@@ -108,12 +108,14 @@ describe('full cross-package handshake', () => {
           throw new Error('open vault failed')
         }
         const env = approveServerLink({
-          masterPrivKey: base64urlDecode(opened.payload.masterPrivKey),
           requestId: REQ_ID,
           serverPubKey: server.publicKey.toRaw(),
           userEncPubKey: userEnc.publicKey.toRaw(),
           userId: 'user_int',
-          userPubKey: userMaster.publicKey.toRaw(),
+          userKey: {
+            privateKey: base64urlDecode(opened.payload.masterPrivKey),
+            publicKey: userMaster.publicKey.toRaw(),
+          },
         })
         return new Response(JSON.stringify({
           assertionSignature: env.assertionSignature,
@@ -222,11 +224,10 @@ describe('full cross-package handshake', () => {
       clientId: '00000000-0000-4000-8000-000000000abc',
       clientPubKey: clientSig.publicKey.toRaw(),
       deviceName: 'Integration Test',
-      masterPrivKey: userMaster.privateKey.toRaw(),
       scope: ['identity'],
       userEncPubKey: userEnc.publicKey.toRaw(),
       userId: 'user_int',
-      userPubKey: userMaster.publicKey.toRaw(),
+      userKey: userMaster,
     })
     const sealedBundle = await buildClientPairBundle({
       clientEncPubKey: clientEnc.publicKey.toRaw(),

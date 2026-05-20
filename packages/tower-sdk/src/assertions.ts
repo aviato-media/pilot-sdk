@@ -4,29 +4,28 @@
 
 import type {
   MasterSignedAssertionEnvelope,
-  PrivateKeyLike,
   PublicKeyLike,
+  PublicPrivateKeyLike,
   ServerLinkAssertionPayload,
   ServerSignInAssertionPayload,
 } from '@aviato-media/pilot-core'
-import { asPublicKey, buildPairingAssertion } from '@aviato-media/pilot-core'
+import { asPublicKey, asPublicPrivateKey, buildPairingAssertion } from '@aviato-media/pilot-core'
 
 export interface ApproveServerLinkInput {
   readonly requestId: string
   /** Ed25519 server pubkey. */
   readonly serverPubKey: PublicKeyLike
   readonly userId: string
-  /** Ed25519 user master pubkey. */
-  readonly userPubKey: PublicKeyLike
+  /** Ed25519 user master key. */
+  readonly userKey: PublicPrivateKeyLike
   /** X25519 user encryption pubkey. */
   readonly userEncPubKey: PublicKeyLike
-  /** Ed25519 user master private key. */
-  readonly masterPrivKey: PrivateKeyLike
   /** Defaults to Date.now() (ms). */
   readonly ts?: number
 }
 
 export function approveServerLink (input: ApproveServerLinkInput): MasterSignedAssertionEnvelope {
+  const userKey = asPublicPrivateKey(input.userKey, 'Ed25519')
   const payload: ServerLinkAssertionPayload = {
     kind: 'server-link',
     requestId: input.requestId,
@@ -34,16 +33,17 @@ export function approveServerLink (input: ApproveServerLinkInput): MasterSignedA
     ts: input.ts ?? Date.now(),
     userEncPubKey: asPublicKey(input.userEncPubKey).toHex(),
     userId: input.userId,
-    userPubKey: asPublicKey(input.userPubKey).toHex(),
+    userPubKey: userKey.publicKey.toHex(),
     v: 1,
   }
   return buildPairingAssertion({
-    masterPrivKey: input.masterPrivKey,
+    masterPrivKey: userKey.privateKey,
     payload,
   })
 }
 
 export function approveServerSignIn (input: ApproveServerLinkInput): MasterSignedAssertionEnvelope {
+  const userKey = asPublicPrivateKey(input.userKey, 'Ed25519')
   const payload: ServerSignInAssertionPayload = {
     kind: 'server-sign-in',
     requestId: input.requestId,
@@ -51,11 +51,11 @@ export function approveServerSignIn (input: ApproveServerLinkInput): MasterSigne
     ts: input.ts ?? Date.now(),
     userEncPubKey: asPublicKey(input.userEncPubKey).toHex(),
     userId: input.userId,
-    userPubKey: asPublicKey(input.userPubKey).toHex(),
+    userPubKey: userKey.publicKey.toHex(),
     v: 1,
   }
   return buildPairingAssertion({
-    masterPrivKey: input.masterPrivKey,
+    masterPrivKey: userKey.privateKey,
     payload,
   })
 }

@@ -1,3 +1,4 @@
+import { ed25519, x25519 } from '@noble/curves/ed25519.js'
 import { bytesToHex as nobleBytesToHex } from '@noble/hashes/utils.js'
 
 import { base64urlDecode, base64urlEncode, hexDecode } from './encoding.js'
@@ -179,8 +180,10 @@ export class PublicPrivateKey {
   readonly publicKey: PublicKey
   readonly privateKey: PrivateKey
 
-  constructor (opts: { publicKey: PublicKeyLike,
-    privateKey: PrivateKeyLike }) {
+  constructor (opts: {
+    publicKey: PublicKeyLike,
+    privateKey: PrivateKeyLike,
+  }) {
     this.publicKey = new PublicKey(opts.publicKey)
     this.privateKey = new PrivateKey(opts.privateKey)
   }
@@ -189,6 +192,14 @@ export class PublicPrivateKey {
     return new PublicPrivateKey({
       privateKey: new PrivateKey(privateKey),
       publicKey: new PublicKey(publicKey),
+    })
+  }
+
+  static fromPrivate (privateKey: PrivateKeyLike, type: 'Ed25519' | 'X25519'): PublicPrivateKey {
+    const privKey = asPrivateKey(privateKey)
+    return new PublicPrivateKey({
+      privateKey: privKey,
+      publicKey: type === 'Ed25519' ? ed25519.getPublicKey(privKey.toRaw()) : x25519.getPublicKey(privKey.toRaw()),
     })
   }
 
@@ -209,10 +220,28 @@ export type PublicKeyLike = PublicKey | Uint8Array | string
 
 export type PrivateKeyLike = PrivateKey | Uint8Array | string
 
+export type PublicPrivateKeyLike = PublicPrivateKey | {
+  publicKey: PublicKeyLike
+  privateKey: PrivateKeyLike
+} | PrivateKeyLike
+
 export function asPublicKey (input: PublicKeyLike): PublicKey {
   return input instanceof PublicKey ? input : new PublicKey(input)
 }
 
 export function asPrivateKey (input: PrivateKeyLike): PrivateKey {
   return input instanceof PrivateKey ? input : new PrivateKey(input)
+}
+
+export function asPublicPrivateKey (input: PublicPrivateKeyLike, type: 'Ed25519' | 'X25519'): PublicPrivateKey {
+  if (input instanceof PublicPrivateKey) {
+    return input
+  } else if (input instanceof PrivateKey || input instanceof Uint8Array || typeof input === 'string') {
+    return PublicPrivateKey.fromPrivate(input, type)
+  } else {
+    return new PublicPrivateKey({
+      publicKey: asPublicKey(input.publicKey),
+      privateKey: asPrivateKey(input.privateKey),
+    })
+  }
 }

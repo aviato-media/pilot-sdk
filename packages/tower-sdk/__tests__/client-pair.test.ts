@@ -25,11 +25,10 @@ describe('client-pair builders', () => {
       clientId: '00000000-0000-4000-8000-000000000010',
       clientPubKey: client.publicKey.toRaw(),
       deviceName: 'Test',
-      masterPrivKey: user.privateKey.toRaw(),
       scope: ['identity'],
       userEncPubKey: userEnc.publicKey.toRaw(),
       userId: 'user_test',
-      userPubKey: user.publicKey.toRaw(),
+      userKey: user,
     })
     const verified = verifyClientCert(cert, { expectedUserPubKey: user.publicKey })
     expect(verified.ok).toBe(true)

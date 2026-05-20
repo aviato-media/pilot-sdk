@@ -7,6 +7,7 @@ import {
   aesGcmEncrypt,
   asPrivateKey,
   asPublicKey,
+  asPublicPrivateKey,
   aviatoSealedBoxDecrypt,
   aviatoSealedBoxDecryptHandle,
   aviatoSealedBoxDecryptJson,
@@ -889,6 +890,89 @@ describe('PublicPrivateKey statics', () => {
     const kp = PublicPrivateKey.fromBytes(pub, priv)
     expect(kp.publicKey.toRaw()).toEqual(pub)
     expect(kp.privateKey.toRaw()).toEqual(priv)
+  })
+  test('fromPrivate derives the matching Ed25519 pubkey', () => {
+    const generated = generateEd25519Keypair()
+    const derived = PublicPrivateKey.fromPrivate(generated.privateKey, 'Ed25519')
+    expect(derived.publicKey.toHex()).toBe(generated.publicKey.toHex())
+    expect(derived.privateKey.equals(generated.privateKey)).toBe(true)
+  })
+  test('fromPrivate derives the matching X25519 pubkey', () => {
+    const generated = generateX25519Keypair()
+    const derived = PublicPrivateKey.fromPrivate(generated.privateKey, 'X25519')
+    expect(derived.publicKey.toHex()).toBe(generated.publicKey.toHex())
+  })
+  test('fromPrivate accepts hex strings + Uint8Array', () => {
+    const kp = generateEd25519Keypair()
+    const fromHex = PublicPrivateKey.fromPrivate(nobleBytesToHex(kp.privateKey.toRaw()), 'Ed25519')
+    expect(fromHex.publicKey.toHex()).toBe(kp.publicKey.toHex())
+    const fromBytes = PublicPrivateKey.fromPrivate(kp.privateKey.toRaw(), 'Ed25519')
+    expect(fromBytes.publicKey.toHex()).toBe(kp.publicKey.toHex())
+  })
+})
+
+describe('asPublicPrivateKey', () => {
+  test('passes a PublicPrivateKey instance through unchanged', () => {
+    const kp = generateEd25519Keypair()
+    const out = asPublicPrivateKey(kp, 'Ed25519')
+    expect(out).toBe(kp)
+  })
+  test('derives the matching pubkey from a bare PrivateKey (Ed25519)', () => {
+    const kp = generateEd25519Keypair()
+    const out = asPublicPrivateKey(kp.privateKey, 'Ed25519')
+    expect(out.publicKey.toHex()).toBe(kp.publicKey.toHex())
+  })
+  test('derives the matching pubkey from raw Uint8Array (Ed25519)', () => {
+    const kp = generateEd25519Keypair()
+    const out = asPublicPrivateKey(kp.privateKey.toRaw(), 'Ed25519')
+    expect(out.publicKey.toHex()).toBe(kp.publicKey.toHex())
+  })
+  test('derives the matching pubkey from a hex string (Ed25519)', () => {
+    const kp = generateEd25519Keypair()
+    const out = asPublicPrivateKey(nobleBytesToHex(kp.privateKey.toRaw()), 'Ed25519')
+    expect(out.publicKey.toHex()).toBe(kp.publicKey.toHex())
+  })
+  test('derives X25519 pubkey when type=X25519', () => {
+    const kp = generateX25519Keypair()
+    const out = asPublicPrivateKey(kp.privateKey, 'X25519')
+    expect(out.publicKey.toHex()).toBe(kp.publicKey.toHex())
+  })
+  test('Ed25519 and X25519 derivations from the same private bytes diverge', () => {
+    const priv = new Uint8Array(32).fill(0x11)
+    const asEd = asPublicPrivateKey(priv, 'Ed25519')
+    const asX = asPublicPrivateKey(priv, 'X25519')
+    expect(asEd.publicKey.toHex()).not.toBe(asX.publicKey.toHex())
+  })
+  test('object form wraps PublicKeyLike + PrivateKeyLike halves', () => {
+    const kp = generateEd25519Keypair()
+    const out = asPublicPrivateKey({
+      privateKey: kp.privateKey.toRaw(),
+      publicKey: kp.publicKey.toRaw(),
+    }, 'Ed25519')
+    expect(out.publicKey.toHex()).toBe(kp.publicKey.toHex())
+    expect(out.privateKey.equals(kp.privateKey)).toBe(true)
+  })
+  test('object form accepts hex strings on both halves', () => {
+    const kp = generateEd25519Keypair()
+    const out = asPublicPrivateKey({
+      privateKey: nobleBytesToHex(kp.privateKey.toRaw()),
+      publicKey: kp.publicKey.toHex(),
+    }, 'Ed25519')
+    expect(out.publicKey.toHex()).toBe(kp.publicKey.toHex())
+    expect(out.privateKey.equals(kp.privateKey)).toBe(true)
+  })
+  test('object form does NOT cross-check that pub matches priv (caller assertion)', () => {
+    const a = generateEd25519Keypair()
+    const b = generateEd25519Keypair()
+    const out = asPublicPrivateKey({
+      privateKey: a.privateKey,
+      publicKey: b.publicKey,
+    }, 'Ed25519')
+    expect(out.publicKey.toHex()).toBe(b.publicKey.toHex())
+    expect(out.privateKey.equals(a.privateKey)).toBe(true)
+  })
+  test('throws on malformed private bytes (wrong length)', () => {
+    expect(() => asPublicPrivateKey(new Uint8Array(16), 'Ed25519')).toThrow()
   })
 })
 
