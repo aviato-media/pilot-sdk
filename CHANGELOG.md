@@ -1,3 +1,9 @@
+## [1.6.0](https://github.com/aviato-media/pilot-sdk/compare/v1.5.0...v1.6.0) (2026-05-20)
+
+### Features
+
+* accept PrivateKeyLike for userEncPrivKey in ClaimConnInfoKeyInput ([49839d0](https://github.com/aviato-media/pilot-sdk/commit/49839d069ddb161bc257e1dbd36aacc342500114))
+
 ## [1.5.0](https://github.com/aviato-media/pilot-sdk/compare/v1.4.0...v1.5.0) (2026-05-20)
 
 ### Features
