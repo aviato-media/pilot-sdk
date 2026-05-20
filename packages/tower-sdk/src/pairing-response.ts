@@ -9,14 +9,16 @@ import type {
   OpenPairingResponseError,
   PairingResponseRecord,
   PairingResponseSealed,
+  PrivateKeyLike,
   PublicKeyLike,
 } from '@aviato-media/pilot-core'
 import { openPairingResponse } from '@aviato-media/pilot-core'
 
 export interface ClaimConnInfoKeyInput {
   readonly record: PairingResponseRecord
-  readonly userEncPrivKey: Uint8Array
-  /** Expected server Ed25519 pubkey (`PublicKey`, raw bytes, or hex string). */
+  /** User X25519 encryption private key. */
+  readonly userEncPrivKey: PrivateKeyLike
+  /** Expected server Ed25519 pubkey. */
   readonly expectedServerPubKey: PublicKeyLike
 }
 
