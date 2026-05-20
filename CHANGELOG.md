@@ -1,3 +1,9 @@
+## [1.1.2](https://github.com/aviato-media/pilot-sdk/compare/v1.1.1...v1.1.2) (2026-05-20)
+
+### Bug Fixes
+
+* add docs ([0252765](https://github.com/aviato-media/pilot-sdk/commit/02527657fddc27d023b08f7bd3cde338f180c42c))
+
 ## [1.1.1](https://github.com/aviato-media/pilot-sdk/compare/v1.1.0...v1.1.1) (2026-05-20)
 
 ### Bug Fixes
