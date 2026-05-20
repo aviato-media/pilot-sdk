@@ -1,3 +1,10 @@
+## [1.1.0](https://github.com/aviato-media/pilot-sdk/compare/v1.0.2...v1.1.0) (2026-05-20)
+
+### Features
+
+* make userPubKey required when calling respondWithK ([b807cba](https://github.com/aviato-media/pilot-sdk/commit/b807cba3636a1930a9436559a2d60d976e8febcc))
+* move toHex to base Key class, making it available for private keys ([cdd1f9a](https://github.com/aviato-media/pilot-sdk/commit/cdd1f9a1fe0d98c8e59853a1f169d7ef658abe92))
+
 ## [1.0.2](https://github.com/aviato-media/pilot-sdk/compare/v1.0.1...v1.0.2) (2026-05-19)
 
 ### Bug Fixes

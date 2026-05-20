@@ -1,6 +1,6 @@
 {
   "name": "@aviato-media/pilot-client-sdk",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Aviato Pilot's License — client-side SDK. Pair with Tower, fetch + decrypt server connection info, authenticate to media servers via per-device delegation cert. For Aviato Web, Afterburner, and third-party client apps.",
   "license": "MIT",
   "repository": {
