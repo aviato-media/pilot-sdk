@@ -4,6 +4,23 @@ import { bytesToHex as nobleBytesToHex } from '@noble/hashes/utils.js'
 import { base64urlDecode, base64urlEncode, hexDecode } from './encoding.js'
 
 const HEX_64 = /^[0-9a-f]{64}$/
+const B64U_43 = /^[A-Za-z0-9_-]{43}$/
+
+function decodeKeyString (input: string, label: string): Uint8Array {
+  if (HEX_64.test(input)) {
+    return hexDecode(input)
+  }
+  if (B64U_43.test(input)) {
+    const bytes = base64urlDecode(input)
+    if (bytes.length !== 32) {
+      throw new Error(`${label}: base64url decoded to ${bytes.length} bytes, expected 32`)
+    }
+    return bytes
+  }
+  throw new Error(
+    `${label}: expected 64 lowercase hex chars or 43 base64url chars (32-byte key), got ${input.length} chars`,
+  )
+}
 
 export abstract class Key {
   protected readonly bytes: Uint8Array
@@ -61,15 +78,10 @@ export class PublicKey extends Key {
       return input
     }
     if (typeof input === 'string') {
-      if (!HEX_64.test(input)) {
-        throw new Error(
-          `PublicKey: expected 64 lowercase hex chars (32-byte pubkey), got ${input.length} chars`,
-        )
-      }
-      return hexDecode(input)
+      return decodeKeyString(input, 'PublicKey')
     }
     throw new Error(
-      `PublicKey: expected PublicKey | Uint8Array | hex string, got ${typeof input === 'object' ? Object.prototype.toString.call(input) : typeof input}`,
+      `PublicKey: expected PublicKey | Uint8Array | hex string | base64url string, got ${typeof input === 'object' ? Object.prototype.toString.call(input) : typeof input}`,
     )
   }
 
@@ -127,15 +139,10 @@ export class PrivateKey extends Key {
       return input
     }
     if (typeof input === 'string') {
-      if (!HEX_64.test(input)) {
-        throw new Error(
-          `PrivateKey: expected 64 lowercase hex chars (32-byte pubkey), got ${input.length} chars`,
-        )
-      }
-      return hexDecode(input)
+      return decodeKeyString(input, 'PrivateKey')
     }
     throw new Error(
-      `PrivateKey: expected PrivateKey | Uint8Array (32 bytes), got ${typeof input === 'object' ? Object.prototype.toString.call(input) : typeof input}`,
+      `PrivateKey: expected PrivateKey | Uint8Array (32 bytes) | hex string | base64url string, got ${typeof input === 'object' ? Object.prototype.toString.call(input) : typeof input}`,
     )
   }
 

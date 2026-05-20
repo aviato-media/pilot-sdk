@@ -883,6 +883,57 @@ describe('PrivateKey', () => {
   })
 })
 
+describe('PublicKey / PrivateKey string-form acceptance', () => {
+  test('PublicKey constructor accepts a hex string', () => {
+    const kp = generateEd25519Keypair()
+    const fromString = new PublicKey(kp.publicKey.toHex())
+    expect(fromString.toRaw()).toEqual(kp.publicKey.toRaw())
+  })
+  test('PublicKey constructor accepts a base64url string (43 chars)', () => {
+    const kp = generateEd25519Keypair()
+    const fromString = new PublicKey(kp.publicKey.toBase64Url())
+    expect(fromString.toRaw()).toEqual(kp.publicKey.toRaw())
+  })
+  test('PrivateKey constructor accepts a hex string', () => {
+    const kp = generateEd25519Keypair()
+    const hex = nobleBytesToHex(kp.privateKey.toRaw())
+    const fromString = new PrivateKey(hex)
+    expect(fromString.equals(kp.privateKey)).toBe(true)
+  })
+  test('PrivateKey constructor accepts a base64url string (43 chars)', () => {
+    const kp = generateEd25519Keypair()
+    const fromString = new PrivateKey(kp.privateKey.toBase64Url())
+    expect(fromString.equals(kp.privateKey)).toBe(true)
+  })
+  test('asPublicKey passes hex AND base64url through', () => {
+    const kp = generateEd25519Keypair()
+    expect(asPublicKey(kp.publicKey.toHex()).toRaw()).toEqual(kp.publicKey.toRaw())
+    expect(asPublicKey(kp.publicKey.toBase64Url()).toRaw()).toEqual(kp.publicKey.toRaw())
+  })
+  test('asPrivateKey passes hex AND base64url through', () => {
+    const kp = generateEd25519Keypair()
+    expect(asPrivateKey(nobleBytesToHex(kp.privateKey.toRaw())).equals(kp.privateKey)).toBe(true)
+    expect(asPrivateKey(kp.privateKey.toBase64Url()).equals(kp.privateKey)).toBe(true)
+  })
+  test('rejects strings whose length matches neither hex(64) nor b64u(43)', () => {
+    expect(() => new PublicKey('abcdef')).toThrow()
+    expect(() => new PrivateKey('abcdef')).toThrow()
+  })
+  test('rejects 64-char strings with non-hex chars (uppercase, etc.)', () => {
+    const bad = 'A'.repeat(64)
+    expect(() => new PublicKey(bad)).toThrow()
+  })
+  test('rejects 43-char strings with characters outside the base64url alphabet', () => {
+    const bad = '!'.repeat(43)
+    expect(() => new PublicKey(bad)).toThrow()
+  })
+  test('equals(other) accepts base64url string form', () => {
+    const kp = generateEd25519Keypair()
+    expect(kp.publicKey.equals(kp.publicKey.toBase64Url())).toBe(true)
+    expect(kp.privateKey.equals(kp.privateKey.toBase64Url())).toBe(true)
+  })
+})
+
 describe('PublicPrivateKey statics', () => {
   test('fromBytes wraps raw bytes into the class hierarchy', () => {
     const pub = new Uint8Array(32).fill(0xaa)
