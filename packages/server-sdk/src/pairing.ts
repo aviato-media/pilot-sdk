@@ -1,48 +1,45 @@
 // Server-link pairing lifecycle.
 //
 // Flow:
-//   1. start()         → call Tower /pairing/register, persist row, return
-//                        { requestId, code, pairingUrl }.
-//   2. pollUntilDone() → poll Tower /pairing/:id until state=completed or
-//                        terminal. Returns the assertion envelope.
-//   3. respondWithK()  → seal K to userEncPubKey, sign with serverPrivKey,
-//                        POST /pairing/:id/response.
+//   1. start()                    → call Tower /pairing/register, persist
+//                                   row, return { requestId, code, pairingUrl }.
+//   2. pollUntilDone()            → poll Tower /pairing/:id until state=
+//                                   completed or terminal. Returns the
+//                                   assertion envelope.
+//   3. respondWithKFromEnvelope() → recommended. Verify the envelope inline
+//                                   against `requestId`, then seal K to the
+//                                   just-verified userEncPubKey.
+//   4. respondWithK()             → low-level. Takes a branded
+//                                   VerifiedPairingAssertion (obtained from
+//                                   verifyServerLinkAssertion or
+//                                   verifyServerSignInAssertion). Runtime-
+//                                   rejects hand-constructed objects.
 
 import type {
   MasterSignedAssertionEnvelope,
   PairingResponsePayload,
+  PublicKeyLike,
   PublicPrivateKey,
 } from '@aviato-media/pilot-core'
 import { buildPairingResponse, pubkeyFromHex } from '@aviato-media/pilot-core'
 
 import type { PairingRequestRow, PairingRequestStore } from './stores.js'
 import type { TowerClient } from './tower-client.js'
-import type { VerifyServerLinkResult, VerifyServerSignInResult } from './verify.js'
+import type { VerifiedPairingAssertion } from './verified-assertion.js'
+import { isVerifiedPairingAssertion } from './verified-assertion.js'
+import { verifyServerLinkAssertion, verifyServerSignInAssertion } from './verify.js'
 
-/** Success branch of `verifyServerLinkAssertion` / `verifyServerSignInAssertion`. */
-export type VerifiedPairingAssertion
-  = | Extract<VerifyServerLinkResult, { ok: true }>
-  | Extract<VerifyServerSignInResult, { ok: true }>
+export type { VerifiedPairingAssertion } from './verified-assertion.js'
 
 export interface PairingHostConfig {
   readonly serverId: string
-  /** Server Ed25519 keypair. */
   readonly serverKey: PublicPrivateKey
-  /** Where Tower-web is hosted (used to build the pairingUrl). */
   readonly towerPairingBaseUrl: string
   readonly displayName?: string
   readonly serverIcon?: string
 }
 
 export interface StartPairingInput {
-  /**
-   * Which pairing flow to begin.
-   * - `server-link` (default): adding a new server to a user's identity.
-   *   Requires exactly one of `inviteToken` or `localUserId`.
-   * - `server-sign-in`: re-authenticating an existing user (refreshes the
-   *   session + redelivers K). Neither `inviteToken` nor `localUserId` is
-   *   required — the host's prior session-auth proves the user identity.
-   */
   readonly kind?: 'server-link' | 'server-sign-in'
   readonly inviteToken?: string
   readonly localUserId?: string
@@ -121,17 +118,26 @@ export class PairingService {
   }
 
   /**
-   * Build the sealed K reply and POST it to Tower. The recipient X25519
-   * key is derived from `verifiedAssertion` — the only authoritative
-   * source for which key K must be sealed to.
+   * The brand attests that `verifiedAssertion` was produced by a prior
+   * `verifyServerLinkAssertion` / `verifyServerSignInAssertion` call. It
+   * does NOT attest verification for THIS `requestId` — a verified result
+   * for an earlier request would still pass. For that stronger guarantee
+   * (recipient bound to the envelope just verified against `requestId`),
+   * call `respondWithKFromEnvelope` instead.
    */
   async respondWithK (input: {
-    requestId: string
-    connInfoKey: Uint8Array
-    verifiedAssertion: VerifiedPairingAssertion
+    readonly requestId: string
+    readonly connInfoKey: Uint8Array
+    readonly verifiedAssertion: VerifiedPairingAssertion
   }): Promise<PairingResponsePayload> {
-    if ((input.verifiedAssertion as { ok: boolean }).ok !== true) {
-      throw new Error('PairingService.respondWithK: verifiedAssertion is not ok')
+    if (!isVerifiedPairingAssertion(input.verifiedAssertion)) {
+      throw new Error(
+        'PairingService.respondWithK: verifiedAssertion missing brand. '
+        + 'Use verifyServerLinkAssertion / verifyServerSignInAssertion, '
+        + 'or respondWithKFromEnvelope to verify inline. '
+        + 'If you built this object from a stored user row, that is the bug — '
+        + 'the recipient must come from a freshly-verified envelope.',
+      )
     }
     const userEncPubKey = pubkeyFromHex(input.verifiedAssertion.userEncPubKey)
     const payload = await buildPairingResponse({
@@ -146,7 +152,39 @@ export class PairingService {
     return payload
   }
 
-  /** Convenience: pull the consumed request row (e.g. after handling completion). */
+  async respondWithKFromEnvelope (input: {
+    readonly requestId: string
+    readonly connInfoKey: Uint8Array
+    readonly envelope: MasterSignedAssertionEnvelope
+    readonly kind?: 'server-link' | 'server-sign-in'
+    readonly expectedUserPubKey?: PublicKeyLike
+    readonly maxAgeMs?: number
+  }): Promise<PairingResponsePayload> {
+    const kind = input.kind ?? 'server-link'
+    const verified = kind === 'server-sign-in'
+      ? verifyServerSignInAssertion({
+        envelope: input.envelope,
+        expectedRequestId: input.requestId,
+        expectedServerPubKey: this.config.serverKey.publicKey,
+        expectedUserPubKey: input.expectedUserPubKey,
+        maxAgeMs: input.maxAgeMs,
+      })
+      : verifyServerLinkAssertion({
+        envelope: input.envelope,
+        expectedRequestId: input.requestId,
+        expectedServerPubKey: this.config.serverKey.publicKey,
+        maxAgeMs: input.maxAgeMs,
+      })
+    if (!verified.ok) {
+      throw new Error(`PairingService.respondWithKFromEnvelope: assertion verify failed (${verified.error})`)
+    }
+    return this.respondWithK({
+      connInfoKey: input.connInfoKey,
+      requestId: input.requestId,
+      verifiedAssertion: verified,
+    })
+  }
+
   async consumeRequest (requestId: string): Promise<PairingRequestRow | null> {
     return this.store.consume(requestId)
   }

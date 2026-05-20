@@ -6,6 +6,7 @@
 // the sealed K — writing it into vault.servers[i].connInfoKey.
 
 import type {
+  OpenPairingResponseError,
   PairingResponseRecord,
   PairingResponseSealed,
   PublicKeyLike,
@@ -23,7 +24,7 @@ export type ClaimConnInfoKeyResult
   = | { ok: true,
     sealed: PairingResponseSealed }
   | { ok: false,
-    error: 'sig_invalid' | 'decrypt_failed' | 'shape_invalid' | 'inner_server_mismatch' }
+    error: OpenPairingResponseError }
 
 export async function claimConnInfoKey (input: ClaimConnInfoKeyInput): Promise<ClaimConnInfoKeyResult> {
   const opened = await openPairingResponse({

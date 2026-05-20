@@ -3,11 +3,16 @@
 // The verified payload carries userPubKey + userEncPubKey, which the server
 // then writes to its identity_users row and uses to seal K back through
 // respondWithK().
+//
+// Success branches are branded VerifiedPairingAssertion values; the brand
+// is the only way PairingService.respondWithK accepts them at runtime.
 
 import type { MasterSignedAssertionEnvelope, PublicKeyLike } from '@aviato-media/pilot-core'
 import { verifyPairingAssertion } from '@aviato-media/pilot-core'
 
 import type { IdentityUserStore } from './stores.js'
+import type { VerifiedPairingAssertion } from './verified-assertion.js'
+import { brandVerifiedPairingAssertion } from './verified-assertion.js'
 
 export interface VerifyServerLinkOptions {
   readonly envelope: MasterSignedAssertionEnvelope
@@ -18,10 +23,7 @@ export interface VerifyServerLinkOptions {
 }
 
 export type VerifyServerLinkResult
-  = | { ok: true,
-    userPubKey: string,
-    userEncPubKey: string,
-    userId: string }
+  = | VerifiedPairingAssertion
   | { ok: false,
     error: string }
 
@@ -38,18 +40,16 @@ export function verifyServerLinkAssertion (opts: VerifyServerLinkOptions): Verif
       ok: false,
     }
   }
-  return {
-    ok: true,
+  return brandVerifiedPairingAssertion({
     userEncPubKey: result.payload.userEncPubKey,
     userId: result.payload.userId,
     userPubKey: result.payload.userPubKey,
-  }
+  })
 }
 
 export type VerifyServerSignInResult = VerifyServerLinkResult
 
 export interface VerifyServerSignInOptions extends VerifyServerLinkOptions {
-  /** If set, payload.userPubKey must equal this key (`PublicKey`, raw bytes, or hex string). */
   readonly expectedUserPubKey?: PublicKeyLike
 }
 
@@ -67,15 +67,13 @@ export function verifyServerSignInAssertion (opts: VerifyServerSignInOptions): V
       ok: false,
     }
   }
-  return {
-    ok: true,
+  return brandVerifiedPairingAssertion({
     userEncPubKey: result.payload.userEncPubKey,
     userId: result.payload.userId,
     userPubKey: result.payload.userPubKey,
-  }
+  })
 }
 
-/** Sugar: verify assertion AND upsert userEncPubKey on the local user row. */
 export async function verifyAndPersist (input: {
   envelope: MasterSignedAssertionEnvelope
   expectedServerPubKey: PublicKeyLike

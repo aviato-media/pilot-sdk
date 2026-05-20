@@ -5,7 +5,7 @@
 import { base64urlDecode, base64urlEncode, ENCODER, jcs } from '../crypto/encoding.js'
 import type { PrivateKeyLike, PublicKeyLike } from '../crypto/keys.js'
 import { asPrivateKey, asPublicKey } from '../crypto/keys.js'
-import { aviatoSealedBoxDecryptJson, aviatoSealedBoxEncrypt } from '../crypto/sealedbox.js'
+import { aviatoSealedBoxDecryptJson, aviatoSealedBoxEncryptWithSelfCheck, x25519PubFromPriv } from '../crypto/sealedbox.js'
 import { ed25519Sign, ed25519Verify } from '../crypto/signing.js'
 import type {
   PairingResponsePayload,
@@ -109,7 +109,7 @@ export async function buildPairingResponse (input: BuildPairingResponseInput): P
     serverPubKey: serverPubKeyHex,
     v: 1,
   }
-  const sealed = await aviatoSealedBoxEncrypt({
+  const sealed = await aviatoSealedBoxEncryptWithSelfCheck({
     plaintext: jcs(sealedPlain),
     recipientPub: userEncPubKey.toRaw(),
   })
@@ -132,12 +132,14 @@ export type OpenPairingResponseError
   | 'decrypt_failed'
   | 'shape_invalid'
   | 'inner_server_mismatch'
+  | 'recipient_priv_mismatch'
 
 export interface OpenPairingResponseInput {
   readonly payload: PairingResponsePayload
   readonly userEncPrivKey: PrivateKeyLike
   /** Expected server Ed25519 pubkey (`PublicKey`, raw bytes, or hex string). */
   readonly expectedServerPubKey: PublicKeyLike
+  readonly expectedRecipientPub?: PublicKeyLike
 }
 
 export async function openPairingResponse (input: OpenPairingResponseInput): Promise<OpenPairingResponseResult> {
@@ -150,6 +152,25 @@ export async function openPairingResponse (input: OpenPairingResponseInput): Pro
     return {
       ok: false,
       error: 'sig_invalid',
+    }
+  }
+  if (input.expectedRecipientPub !== undefined) {
+    const expectedPub = asPublicKey(input.expectedRecipientPub).toRaw()
+    const derivedPub = x25519PubFromPriv(userEncPrivKey.toRaw())
+    let equal = derivedPub.length === expectedPub.length
+    if (equal) {
+      for (let i = 0; i < derivedPub.length; i++) {
+        if (derivedPub[i] !== expectedPub[i]) {
+          equal = false
+          break
+        }
+      }
+    }
+    if (!equal) {
+      return {
+        ok: false,
+        error: 'recipient_priv_mismatch',
+      }
     }
   }
   const decoded = await aviatoSealedBoxDecryptJson<unknown>({

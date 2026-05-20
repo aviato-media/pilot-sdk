@@ -26,6 +26,8 @@ import {
   generateEd25519Keypair,
   generateX25519Keypair,
   hexEncode,
+  PublicPrivateKey,
+  randomAesKey,
   verifySessionAssertion,
 } from '@aviato-media/pilot-core'
 import {
@@ -190,10 +192,10 @@ describe('full cross-package handshake', () => {
     expect(verified.userPubKey).toBe(userPubHex)
     expect(verified.userEncPubKey).toBe(userEncPubHex)
 
-    await pairing.respondWithK({
+    await pairing.respondWithKFromEnvelope({
       connInfoKey: K,
+      envelope: polled.envelope,
       requestId: REQ_ID,
-      verifiedAssertion: verified,
     })
     expect(posted.response).not.toBeUndefined()
 
@@ -359,5 +361,35 @@ describe('full cross-package handshake', () => {
     if (opened.ok) {
       expect(opened.bundle.servers[0]!.connInfoKey).toBe(base64urlEncode(K))
     }
+  })
+
+  test('respondWithK rejects hand-constructed verifiedAssertion (stale-snapshot defense)', async () => {
+    const server = generateEd25519Keypair()
+    const user = generateEd25519Keypair()
+    const userEnc = generateX25519Keypair()
+    const tower = new ServerTowerClient({
+      baseUrl: 'https://tower.test',
+      bearer: 't',
+      fetch: (async () => new Response('{}', { status: 200 })) as unknown as typeof globalThis.fetch,
+    })
+    const svc = new PairingService(tower, new MemoryPairingRequestStore(), {
+      serverId: 'srv',
+      serverKey: new PublicPrivateKey({
+        privateKey: server.privateKey,
+        publicKey: server.publicKey,
+      }),
+      towerPairingBaseUrl: 'https://tower.test',
+    })
+    await expect(svc.respondWithK({
+      connInfoKey: randomAesKey(),
+      requestId: 'r',
+      // @ts-expect-error — intentionally unbranded
+      verifiedAssertion: {
+        ok: true,
+        userEncPubKey: hexEncode(userEnc.publicKey),
+        userId: 'u',
+        userPubKey: hexEncode(user.publicKey),
+      },
+    })).rejects.toThrow(/missing brand/)
   })
 })

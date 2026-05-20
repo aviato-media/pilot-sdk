@@ -9,8 +9,10 @@ import {
   asPublicKey,
   aviatoSealedBoxDecrypt,
   aviatoSealedBoxDecryptHandle,
+  aviatoSealedBoxDecryptJson,
   aviatoSealedBoxDecryptJsonHandle,
   aviatoSealedBoxEncrypt,
+  aviatoSealedBoxEncryptWithSelfCheck,
   base64urlDecode,
   base64urlEncode,
   buildClientCert,
@@ -299,7 +301,6 @@ describe('conn-info AEAD seal/open', () => {
   test('round-trip with publish signature verification', async () => {
     const server = generateEd25519Keypair()
     const K = randomAesKey()
-    const _serverPubHex = hexEncode(server.publicKey)
     const payload = {
       fingerprint: '0'.repeat(64),
       issuedAtSec: Math.floor(Date.now() / 1000),
@@ -553,7 +554,6 @@ describe('session assertion (cert-auth)', () => {
     // 16-byte random challenge: not a pubkey, so use noble's generic
     // bytes→hex directly rather than the pubkey-typed `hexEncode`.
     const challenge = nobleBytesToHex(crypto.getRandomValues(new Uint8Array(16)))
-    const _serverPubHex = hexEncode(server.publicKey)
     const assertion = buildSessionAssertion({
       cert,
       challenge,
@@ -591,7 +591,6 @@ describe('session assertion (cert-auth)', () => {
         v: 1,
       },
     })
-    const _serverPubHex = hexEncode(server.publicKey)
     const assertion = buildSessionAssertion({
       cert,
       challenge: 'aabbcc',
@@ -1875,6 +1874,48 @@ describe('sealServerConnInfo + openServerConnInfo: error branches', () => {
     // With version mismatch the AAD differs → aead_decrypt_failed first.
     if (!r.ok) {
       expect(['aead_decrypt_failed', 'rotation_counter_mismatch']).toContain(r.error)
+    }
+  })
+})
+
+describe('sealedbox: self-check + recipient_priv_mismatch', () => {
+  test('aviatoSealedBoxEncryptWithSelfCheck round-trips successfully', async () => {
+    const recipient = generateX25519Keypair()
+    const plaintext = new TextEncoder().encode(JSON.stringify({ hello: 'world' }))
+    const sealed = await aviatoSealedBoxEncryptWithSelfCheck({
+      plaintext,
+      recipientPub: recipient.publicKey,
+    })
+    const opened = await aviatoSealedBoxDecryptJson<{ hello: string }>({
+      box: sealed,
+      recipientPriv: recipient.privateKey,
+    })
+    expect(opened).not.toBeNull()
+    expect(opened!.hello).toBe('world')
+  })
+
+  test('openPairingResponse returns recipient_priv_mismatch when expectedRecipientPub disagrees', async () => {
+    const server = generateEd25519Keypair()
+    const userEnc = generateX25519Keypair()
+    const userMaster = generateEd25519Keypair()
+    const otherEnc = generateX25519Keypair()
+    const K = randomAesKey()
+    const payload = await buildPairingResponse({
+      connInfoKey: K,
+      serverPrivKey: server.privateKey,
+      serverPubKey: server.publicKey,
+      userEncPubKey: userEnc.publicKey,
+      userPubKey: userMaster.publicKey,
+    })
+    const wrongPrivResult = await openPairingResponse({
+      expectedRecipientPub: userEnc.publicKey,
+      expectedServerPubKey: server.publicKey,
+      payload,
+      userEncPrivKey: otherEnc.privateKey,
+    })
+    expect(wrongPrivResult.ok).toBe(false)
+    if (!wrongPrivResult.ok) {
+      expect(wrongPrivResult.error).toBe('recipient_priv_mismatch')
     }
   })
 })

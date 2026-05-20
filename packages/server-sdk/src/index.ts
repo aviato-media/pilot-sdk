@@ -45,6 +45,7 @@ export {
   TowerClient,
   TowerHttpError,
 } from './tower-client.js'
+export { isVerifiedPairingAssertion } from './verified-assertion.js'
 export type {
   VerifyServerLinkOptions,
   VerifyServerLinkResult,

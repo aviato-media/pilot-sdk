@@ -17,6 +17,7 @@ import {
 } from '@aviato-media/pilot-core'
 import { describe, expect, test } from 'bun:test'
 
+import type { VerifiedPairingAssertion } from '../src/index.js'
 import {
   ConnInfoPublisher,
   MemoryPairingRequestStore,
@@ -268,14 +269,16 @@ describe('PairingService end-to-end', () => {
         towerPairingBaseUrl: 'https://tower.test',
       },
     )
+    const unbrandedAssertion: VerifiedPairingAssertion = {
+      error: 'signature_invalid',
+      // @ts-expect-error — intentionally unbranded (proves runtime brand check fires)
+      ok: false,
+    }
     await expect(service.respondWithK({
       connInfoKey: randomAesKey(),
       requestId: 'req_x',
-      verifiedAssertion: {
-        error: 'signature_invalid',
-        ok: false,
-      } as never,
-    })).rejects.toThrow(/unverified|not ok/i)
+      verifiedAssertion: unbrandedAssertion,
+    })).rejects.toThrow(/missing brand/)
   })
 
   test('respondWithK seals to the assertion userEncPubKey even if caller has stale state', async () => {
@@ -312,13 +315,27 @@ describe('PairingService end-to-end', () => {
       },
     )
 
-    // The verified assertion carries userEnc.publicKey, NOT wrongEnc.publicKey.
-    // There is no parameter for the caller to override this.
-    const verified = {
-      ok: true as const,
-      userEncPubKey: hexEncode(userEnc.publicKey),
-      userId: 'user_x',
-      userPubKey: hexEncode(user.publicKey),
+    const envelope = buildPairingAssertion({
+      masterPrivKey: user.privateKey,
+      payload: {
+        kind: 'server-link',
+        requestId: REQUEST_ID,
+        serverPubKey: hexEncode(server.publicKey),
+        ts: Date.now(),
+        userEncPubKey: hexEncode(userEnc.publicKey),
+        userId: 'user_x',
+        userPubKey: hexEncode(user.publicKey),
+        v: 1,
+      },
+    })
+    const verified = verifyServerLinkAssertion({
+      envelope,
+      expectedRequestId: REQUEST_ID,
+      expectedServerPubKey: server.publicKey,
+    })
+    expect(verified.ok).toBe(true)
+    if (!verified.ok) {
+      return
     }
     await service.respondWithK({
       connInfoKey: K,
@@ -345,6 +362,101 @@ describe('PairingService end-to-end', () => {
     if (rightOpen.ok) {
       expect(base64urlDecode(rightOpen.payload.connInfoKey)).toEqual(K)
     }
+  })
+
+  test('respondWithKFromEnvelope verifies inline and seals K', async () => {
+    const server = generateEd25519Keypair()
+    const user = generateEd25519Keypair()
+    const userEnc = generateX25519Keypair()
+    const K = randomAesKey()
+    const REQUEST_ID = 'req_from_env'
+
+    let postedResponse: any = null
+    const mockFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : (input as Request).url
+      if (url.endsWith(`/api/identity/pairing/${REQUEST_ID}/response`) && init?.method === 'POST') {
+        postedResponse = JSON.parse(init.body as string)
+        return new Response('{}', { status: 200 })
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    }) as unknown as typeof globalThis.fetch
+
+    const tower = new TowerClient({
+      baseUrl: 'https://tower.test',
+      bearer: 't',
+      fetch: mockFetch,
+    })
+    const service = new PairingService(tower, new MemoryPairingRequestStore(), {
+      serverId: 'srv_test',
+      serverKey: server,
+      towerPairingBaseUrl: 'https://tower.test',
+    })
+
+    const envelope = buildPairingAssertion({
+      masterPrivKey: user.privateKey,
+      payload: {
+        kind: 'server-link',
+        requestId: REQUEST_ID,
+        serverPubKey: hexEncode(server.publicKey),
+        ts: Date.now(),
+        userEncPubKey: hexEncode(userEnc.publicKey),
+        userId: 'user_test',
+        userPubKey: hexEncode(user.publicKey),
+        v: 1,
+      },
+    })
+
+    await service.respondWithKFromEnvelope({
+      connInfoKey: K,
+      envelope,
+      requestId: REQUEST_ID,
+    })
+    expect(postedResponse).not.toBeNull()
+
+    const opened = await openPairingResponse({
+      expectedServerPubKey: server.publicKey,
+      payload: postedResponse,
+      userEncPrivKey: userEnc.privateKey,
+    })
+    expect(opened.ok).toBe(true)
+    if (opened.ok) {
+      expect(base64urlDecode(opened.payload.connInfoKey)).toEqual(K)
+    }
+  })
+
+  test('respondWithKFromEnvelope rejects an envelope whose requestId differs from this request', async () => {
+    const server = generateEd25519Keypair()
+    const user = generateEd25519Keypair()
+    const userEnc = generateX25519Keypair()
+    const K = randomAesKey()
+    const envelope = buildPairingAssertion({
+      masterPrivKey: user.privateKey,
+      payload: {
+        kind: 'server-link',
+        requestId: 'req_OTHER',
+        serverPubKey: hexEncode(server.publicKey),
+        ts: Date.now(),
+        userEncPubKey: hexEncode(userEnc.publicKey),
+        userId: 'u',
+        userPubKey: hexEncode(user.publicKey),
+        v: 1,
+      },
+    })
+    const tower = new TowerClient({
+      baseUrl: 'https://tower.test',
+      bearer: 't',
+      fetch: (async () => new Response('{}', { status: 200 })) as unknown as typeof globalThis.fetch,
+    })
+    const service = new PairingService(tower, new MemoryPairingRequestStore(), {
+      serverId: 'srv_test',
+      serverKey: server,
+      towerPairingBaseUrl: 'https://tower.test',
+    })
+    await expect(service.respondWithKFromEnvelope({
+      connInfoKey: K,
+      envelope,
+      requestId: 'req_THIS',
+    })).rejects.toThrow(/assertion verify failed/)
   })
 
   test('start() rejects both invite + localUserId together', async () => {

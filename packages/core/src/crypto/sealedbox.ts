@@ -41,25 +41,70 @@ export interface SealedBoxEncryptInput {
   readonly aad?: Uint8Array
 }
 
-export async function aviatoSealedBoxEncrypt (input: SealedBoxEncryptInput): Promise<SealedBox> {
-  const recipientPub = asPublicKey(input.recipientPub).toRaw()
+async function encryptInner (input: SealedBoxEncryptInput): Promise<{
+  ct: ArrayBuffer
+  ephPub: Uint8Array
+  key: CryptoKey
+  nonce: Uint8Array
+}> {
+  const recipientPubBytes = asPublicKey(input.recipientPub).toRaw()
   const ephPriv = x25519.utils.randomSecretKey()
   const ephPub = x25519.getPublicKey(ephPriv)
-  const shared = x25519.getSharedSecret(ephPriv, recipientPub)
+  const shared = x25519.getSharedSecret(ephPriv, recipientPubBytes)
   const key = await deriveSealedboxKey(shared)
-  const nonce = new Uint8Array(12)
-  crypto.getRandomValues(nonce)
-  const ct = new Uint8Array(await crypto.subtle.encrypt(
+  const nonce = crypto.getRandomValues(new Uint8Array(12))
+  const ct = await crypto.subtle.encrypt(
     {
-      name: 'AES-GCM',
-      iv: asBuffer(nonce),
       additionalData: input.aad ? asBuffer(input.aad) : undefined,
+      iv: asBuffer(nonce),
+      name: 'AES-GCM',
     },
     key,
     asBuffer(input.plaintext),
-  ))
+  )
   return {
-    ct: base64urlEncode(ct),
+    ct,
+    ephPub,
+    key,
+    nonce,
+  }
+}
+
+export async function aviatoSealedBoxEncrypt (input: SealedBoxEncryptInput): Promise<SealedBox> {
+  const { ct, ephPub, nonce } = await encryptInner(input)
+  return {
+    ct: base64urlEncode(new Uint8Array(ct)),
+    ephPub: base64urlEncode(ephPub),
+    nonce: base64urlEncode(nonce),
+  }
+}
+
+// Round-trips the just-produced ciphertext under the same ephPriv +
+// recipientPub before returning. Catches sealedbox impl drift (HKDF info
+// drift, AES-GCM tag mismatch). Does NOT catch a wrong recipientPub —
+// encrypt+decrypt are symmetric on the same value.
+export async function aviatoSealedBoxEncryptWithSelfCheck (input: SealedBoxEncryptInput): Promise<SealedBox> {
+  const { ct, ephPub, key, nonce } = await encryptInner(input)
+  const plainCheck = await crypto.subtle.decrypt(
+    {
+      additionalData: input.aad ? asBuffer(input.aad) : undefined,
+      iv: asBuffer(nonce),
+      name: 'AES-GCM',
+    },
+    key,
+    ct,
+  )
+  const checkBytes = new Uint8Array(plainCheck)
+  if (checkBytes.length !== input.plaintext.length) {
+    throw new Error('aviatoSealedBoxEncryptWithSelfCheck: round-trip length mismatch')
+  }
+  for (let i = 0; i < checkBytes.length; i++) {
+    if (checkBytes[i] !== input.plaintext[i]) {
+      throw new Error('aviatoSealedBoxEncryptWithSelfCheck: round-trip byte mismatch')
+    }
+  }
+  return {
+    ct: base64urlEncode(new Uint8Array(ct)),
     ephPub: base64urlEncode(ephPub),
     nonce: base64urlEncode(nonce),
   }
