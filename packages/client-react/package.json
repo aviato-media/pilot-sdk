@@ -1,6 +1,6 @@
 {
   "name": "@aviato-media/pilot-client-react",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "React bindings for @aviato-media/pilot-client-sdk. Provider + hooks (useAviatoPilotClient, usePilotConnection, usePilotConnections, usePairing, usePilotIdentity) backed by useSyncExternalStore over the SDK's subscribe surface.",
   "license": "MIT",
   "repository": {

@@ -1,3 +1,10 @@
+## [1.2.0](https://github.com/aviato-media/pilot-sdk/compare/v1.1.2...v1.2.0) (2026-05-20)
+
+### Features
+
+* add PrivateKey.fromHex utility ([a2b906b](https://github.com/aviato-media/pilot-sdk/commit/a2b906b68d471327df646930ecb98490aef1dfea))
+* brand VerifiedPairingAssertion + add respondWithKFromEnvelope ([fcd710b](https://github.com/aviato-media/pilot-sdk/commit/fcd710b6a281b2798bcb2c40843c23cc01269571))
+
 ## [1.1.2](https://github.com/aviato-media/pilot-sdk/compare/v1.1.1...v1.1.2) (2026-05-20)
 
 ### Bug Fixes
