@@ -1,3 +1,9 @@
+## [1.6.1](https://github.com/aviato-media/pilot-sdk/compare/v1.6.0...v1.6.1) (2026-05-20)
+
+### Bug Fixes
+
+* provide discrete error when pairing response is not JSON ([834bf5c](https://github.com/aviato-media/pilot-sdk/commit/834bf5c347f0ae19b9efb21d7f7035e53c0b8ca7))
+
 ## [1.6.0](https://github.com/aviato-media/pilot-sdk/compare/v1.5.0...v1.6.0) (2026-05-20)
 
 ### Features
