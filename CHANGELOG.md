@@ -1,3 +1,9 @@
+## [1.3.0](https://github.com/aviato-media/pilot-sdk/compare/v1.2.0...v1.3.0) (2026-05-20)
+
+### Features
+
+* approveServerLink and approveServerSignIn accept Key classes ([fc1a7f3](https://github.com/aviato-media/pilot-sdk/commit/fc1a7f3cb86615c5bf28517d94a37ce222b53bb7))
+
 ## [1.2.0](https://github.com/aviato-media/pilot-sdk/compare/v1.1.2...v1.2.0) (2026-05-20)
 
 ### Features
