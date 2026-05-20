@@ -1,3 +1,9 @@
+## [1.5.0](https://github.com/aviato-media/pilot-sdk/compare/v1.4.0...v1.5.0) (2026-05-20)
+
+### Features
+
+* accept base64url encoded keys for all KeyLike inputs ([abbfb3f](https://github.com/aviato-media/pilot-sdk/commit/abbfb3f6226a1fb04dd54d4ba461fe531f3527de))
+
 ## [1.4.0](https://github.com/aviato-media/pilot-sdk/compare/v1.3.0...v1.4.0) (2026-05-20)
 
 ### Features

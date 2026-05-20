@@ -1,6 +1,6 @@
 {
   "name": "@aviato-media/pilot-tower-sdk",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Aviato Pilot's License — Tower-side SDK. Browser-first vault crypto, passkey-PRF unwrap, build and sign assertions / certs with the user's master key, seal client-pair bundles. Pure crypto, zero HTTP.",
   "license": "MIT",
   "repository": {
