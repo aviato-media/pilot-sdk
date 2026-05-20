@@ -1,3 +1,9 @@
+## [1.4.0](https://github.com/aviato-media/pilot-sdk/compare/v1.3.0...v1.4.0) (2026-05-20)
+
+### Features
+
+* simplify tower-sdk by accepting PublicPrivateKeyLike inputs ([05f3f0c](https://github.com/aviato-media/pilot-sdk/commit/05f3f0c66ddcf1edfb5ed916fc74d717750356c4))
+
 ## [1.3.0](https://github.com/aviato-media/pilot-sdk/compare/v1.2.0...v1.3.0) (2026-05-20)
 
 ### Features

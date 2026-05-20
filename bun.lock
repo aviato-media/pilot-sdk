@@ -23,7 +23,7 @@
     },
     "packages/client-react": {
       "name": "@aviato-media/pilot-client-react",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "dependencies": {
         "@aviato-media/pilot-client-sdk": "workspace:*",
         "@aviato-media/pilot-core": "workspace:*",
@@ -40,7 +40,7 @@
     },
     "packages/client-sdk": {
       "name": "@aviato-media/pilot-client-sdk",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "dependencies": {
         "@aviato-media/pilot-core": "workspace:*",
         "zod": "4.4.3",
@@ -52,7 +52,7 @@
     },
     "packages/core": {
       "name": "@aviato-media/pilot-core",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "dependencies": {
         "@noble/curves": "^2.0.0",
         "@noble/hashes": "^1.7.0",
@@ -81,7 +81,7 @@
     },
     "packages/server-sdk": {
       "name": "@aviato-media/pilot-server-sdk",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "dependencies": {
         "@aviato-media/pilot-core": "workspace:*",
         "zod": "4.4.3",
@@ -93,7 +93,7 @@
     },
     "packages/tower-sdk": {
       "name": "@aviato-media/pilot-tower-sdk",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "dependencies": {
         "@aviato-media/pilot-core": "workspace:*",
         "zod": "4.4.3",
