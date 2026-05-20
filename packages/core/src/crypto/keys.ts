@@ -23,6 +23,10 @@ export abstract class Key {
     return base64urlEncode(this.bytes)
   }
 
+  toHex (): string {
+    return nobleBytesToHex(this.bytes)
+  }
+
   protected equalsBytes (other: Uint8Array): boolean {
     if (other.length !== this.bytes.length) {
       return false
@@ -66,10 +70,6 @@ export class PublicKey extends Key {
     throw new Error(
       `PublicKey: expected PublicKey | Uint8Array | hex string, got ${typeof input === 'object' ? Object.prototype.toString.call(input) : typeof input}`,
     )
-  }
-
-  toHex (): string {
-    return nobleBytesToHex(this.bytes)
   }
 
   override toString (): string {
