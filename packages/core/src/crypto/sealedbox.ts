@@ -88,7 +88,7 @@ export async function aviatoSealedBoxEncryptWithSelfCheck (input: SealedBoxEncry
   const plainCheck = await crypto.subtle.decrypt(
     {
       ...(input.aad ? { additionalData: asBuffer(input.aad) } : {}),
-      iv: asBuffer(box.nonce),
+      iv: asBuffer(nonce),
       name: 'AES-GCM',
     },
     key,

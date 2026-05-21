@@ -21,7 +21,7 @@ import type {
   PublicKeyLike,
   PublicPrivateKey,
 } from '@aviato-media/pilot-core'
-import { buildPairingResponse, pubkeyFromHex } from '@aviato-media/pilot-core'
+import { buildPairingResponse } from '@aviato-media/pilot-core'
 
 import type { PairingRequestRow, PairingRequestStore } from './stores.js'
 import type { TowerClient } from './tower-client.js'
@@ -139,13 +139,11 @@ export class PairingService {
         + 'the recipient must come from a freshly-verified envelope.',
       )
     }
-    const userEncPubKey = pubkeyFromHex(input.verifiedAssertion.userEncPubKey)
     const payload = await buildPairingResponse({
       connInfoKey: input.connInfoKey,
       expectedUserEncPubKeyHex: input.verifiedAssertion.userEncPubKey,
-      serverPrivKey: this.config.serverKey.privateKey,
-      serverPubKey: this.config.serverKey.publicKey,
-      userEncPubKey,
+      serverKey: this.config.serverKey,
+      userEncPubKey: input.verifiedAssertion.userEncPubKey,
       userPubKey: input.verifiedAssertion.userPubKey,
     })
     await this.tower.postPairingResponse(input.requestId, payload)

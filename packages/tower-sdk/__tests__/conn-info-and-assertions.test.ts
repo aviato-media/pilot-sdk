@@ -148,8 +148,7 @@ describe('claimConnInfoKey', () => {
     const K = randomAesKey()
     const payload = await buildPairingResponse({
       connInfoKey: K,
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })
@@ -174,8 +173,7 @@ describe('claimConnInfoKey', () => {
     const userEnc = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })
@@ -200,8 +198,7 @@ describe('claimConnInfoKey', () => {
     const wrong = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })

@@ -3,8 +3,8 @@
 // (prefixed by hex serverPubKey) with serverPrivKey.
 
 import { base64urlDecode, base64urlEncode, DECODER, ENCODER, jcs } from '../crypto/encoding.js'
-import type { PrivateKeyLike, PublicKeyLike } from '../crypto/keys.js'
-import { asPrivateKey, asPublicKey } from '../crypto/keys.js'
+import type { PrivateKeyLike, PublicKeyLike, PublicPrivateKeyLike } from '../crypto/keys.js'
+import { asPrivateKey, asPublicKey, asPublicPrivateKey } from '../crypto/keys.js'
 import { aviatoSealedBoxDecrypt, aviatoSealedBoxEncryptWithSelfCheck, x25519PubFromPriv } from '../crypto/sealedbox.js'
 import { ed25519Sign, ed25519Verify } from '../crypto/signing.js'
 import type {
@@ -32,10 +32,8 @@ function buildPairingResponseSigMessage (
 
 export interface BuildPairingResponseInput {
   readonly connInfoKey: Uint8Array
-  /** Server Ed25519 pubkey. */
-  readonly serverPubKey: PublicKeyLike
-  /** Server Ed25519 private key. */
-  readonly serverPrivKey: PrivateKeyLike
+  /** Server Ed25519 keypair. */
+  readonly serverKey: PublicPrivateKeyLike
   /** User X25519 encryption pubkey (recipient). */
   readonly userEncPubKey: PublicKeyLike
   /**
@@ -82,11 +80,10 @@ function assertValidRecipient (userEncPubKey: Uint8Array, serverPubKey: Uint8Arr
 }
 
 export async function buildPairingResponse (input: BuildPairingResponseInput): Promise<PairingResponsePayload> {
-  const serverPubKey = asPublicKey(input.serverPubKey)
+  const serverKey = asPublicPrivateKey(input.serverKey, 'Ed25519')
   const userEncPubKey = asPublicKey(input.userEncPubKey)
-  const serverPrivKey = asPrivateKey(input.serverPrivKey)
-  assertValidRecipient(userEncPubKey.toRaw(), serverPubKey.toRaw())
-  const serverPubKeyHex = serverPubKey.toHex()
+  assertValidRecipient(userEncPubKey.toRaw(), serverKey.publicKey.toRaw())
+  const serverPubKeyHex = serverKey.publicKey.toHex()
   const userEncPubKeyHex = userEncPubKey.toHex()
   if (input.expectedUserEncPubKeyHex !== undefined) {
     if (userEncPubKeyHex !== input.expectedUserEncPubKeyHex) {
@@ -111,10 +108,10 @@ export async function buildPairingResponse (input: BuildPairingResponseInput): P
   }
   const sealed = await aviatoSealedBoxEncryptWithSelfCheck({
     plaintext: jcs(sealedPlain),
-    recipientPub: userEncPubKey.toRaw(),
+    recipientPub: userEncPubKey,
   })
   const sigMsg = buildPairingResponseSigMessage(serverPubKeyHex, sealed)
-  const sig = ed25519Sign(sigMsg, serverPrivKey.toRaw())
+  const sig = ed25519Sign(sigMsg, serverKey.privateKey.toRaw())
   return {
     sealed,
     sig: base64urlEncode(sig),
