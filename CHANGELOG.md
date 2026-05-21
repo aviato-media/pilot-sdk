@@ -1,3 +1,9 @@
+## [1.8.0](https://github.com/aviato-media/pilot-sdk/compare/v1.7.0...v1.8.0) (2026-05-21)
+
+### Features
+
+* add new operator-link PairKind ([a7afbb9](https://github.com/aviato-media/pilot-sdk/commit/a7afbb94217fe09c26afa064f0ce2c563703057e))
+
 ## [1.7.0](https://github.com/aviato-media/pilot-sdk/compare/v1.6.1...v1.7.0) (2026-05-21)
 
 ### Features
