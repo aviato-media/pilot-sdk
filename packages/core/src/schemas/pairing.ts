@@ -5,7 +5,16 @@ import { z } from 'zod'
 import { BASE64URL, HEX_32, ISO_DATETIME } from './primitives.js'
 import { SealedBoxSchema } from './sealedbox.js'
 
-export const PairingKindSchema = z.enum(['server-link', 'server-sign-in', 'client-pair'])
+// M-signed pairing-assertion variants. Tower signs one of these to bind
+// the user (M) to a server in some capacity. `operator-link` records the
+// user as the server's operator and is stored plaintext on Tower for
+// license activation; the other two are encrypted-conn-info flows.
+export const PairKindSchema = z.enum(['server-link', 'server-sign-in', 'operator-link'])
+export type PairKind = z.infer<typeof PairKindSchema>
+
+// Tower-API pairing-flow kind. Superset of PairKind that also carries the
+// third-party app `client-pair` flow.
+export const PairingKindSchema = z.enum([...PairKindSchema.options, 'client-pair'])
 export type PairingKind = z.infer<typeof PairingKindSchema>
 
 /**
@@ -33,9 +42,10 @@ export type PairingRegisterRequest = z.infer<typeof PairingRegisterRequestSchema
  * the consent UI can render appropriately.
  *
  * `kind` is the discriminator:
- *   - server-link, server-sign-in: `serverId`, `serverPubKey`, and
- *     (when the host configured them) `displayName`/`serverIcon` are
- *     populated. `scope` carries the requested permissions.
+ *   - server-link, server-sign-in, operator-link: `serverId`,
+ *     `serverPubKey`, and (when the host configured them)
+ *     `displayName`/`serverIcon` are populated. `scope` carries the
+ *     requested permissions.
  *   - client-pair: `appId` is populated; the other `app*` fields come
  *     from Tower's app-registry. `scope` lists requested permissions.
  *

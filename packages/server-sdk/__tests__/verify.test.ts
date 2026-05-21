@@ -12,6 +12,7 @@ import { describe, expect, test } from 'bun:test'
 import { MemoryIdentityUserStore } from '../src/stores.js'
 import {
   verifyAndPersist,
+  verifyOperatorLinkAssertion,
   verifyServerLinkAssertion,
   verifyServerSignInAssertion,
 } from '../src/verify.js'
@@ -214,6 +215,41 @@ describe('verifyAndPersist', () => {
       expect(result.error).toBe('wrong_server')
     }
   })
+  test('kind=operator-link dispatches to operator verifier and does NOT upsert userEncPubKey', async () => {
+    const f = makeServerSignInEnvelope()
+    const env = buildPairingAssertion({
+      masterPrivKey: f.user.privateKey,
+      payload: {
+        kind: 'operator-link',
+        requestId: f.requestId,
+        serverPubKey: hexEncode(f.server.publicKey),
+        ts: Date.now(),
+        userEncPubKey: hexEncode(f.userEnc.publicKey),
+        userId: 'user_test',
+        userPubKey: hexEncode(f.user.publicKey),
+        v: 1,
+      },
+    })
+    const existingEnc = generateX25519Keypair()
+    const userStore = new MemoryIdentityUserStore()
+    userStore.seed({
+      id: 'user_test',
+      towerUserId: 'tower_uid',
+      userEncPubKey: hexEncode(existingEnc.publicKey),
+      userPubKey: hexEncode(f.user.publicKey),
+    })
+    const result = await verifyAndPersist({
+      envelope: env,
+      expectedRequestId: f.requestId,
+      expectedServerPubKey: f.server.publicKey,
+      kind: 'operator-link',
+      userStore,
+    })
+    expect(result.ok).toBe(true)
+    const row = await userStore.getByPublicKey(hexEncode(f.user.publicKey))
+    expect(row).not.toBeNull()
+    expect(row!.userEncPubKey).toBe(hexEncode(existingEnc.publicKey))
+  })
 })
 
 describe('verifyServerLinkAssertion (the wrapper)', () => {
@@ -238,5 +274,56 @@ describe('verifyServerLinkAssertion (the wrapper)', () => {
       expectedServerPubKey: f.server.publicKey,
     })
     expect(r.ok).toBe(true)
+  })
+})
+
+describe('verifyOperatorLinkAssertion', () => {
+  test('round-trip surfaces user identity', () => {
+    const f = makeServerSignInEnvelope()
+    const env = buildPairingAssertion({
+      masterPrivKey: f.user.privateKey,
+      payload: {
+        kind: 'operator-link',
+        requestId: f.requestId,
+        serverPubKey: hexEncode(f.server.publicKey),
+        ts: Date.now(),
+        userEncPubKey: hexEncode(f.userEnc.publicKey),
+        userId: 'operator_user',
+        userPubKey: hexEncode(f.user.publicKey),
+        v: 1,
+      },
+    })
+    const r = verifyOperatorLinkAssertion({
+      envelope: env,
+      expectedRequestId: f.requestId,
+      expectedServerPubKey: f.server.publicKey,
+    })
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.userId).toBe('operator_user')
+      expect(r.userPubKey).toBe(hexEncode(f.user.publicKey))
+    }
+  })
+  test('rejects a server-link envelope', () => {
+    const f = makeServerSignInEnvelope()
+    const env = buildPairingAssertion({
+      masterPrivKey: f.user.privateKey,
+      payload: {
+        kind: 'server-link',
+        requestId: f.requestId,
+        serverPubKey: hexEncode(f.server.publicKey),
+        ts: Date.now(),
+        userEncPubKey: hexEncode(f.userEnc.publicKey),
+        userId: 'u',
+        userPubKey: hexEncode(f.user.publicKey),
+        v: 1,
+      },
+    })
+    const r = verifyOperatorLinkAssertion({
+      envelope: env,
+      expectedRequestId: f.requestId,
+      expectedServerPubKey: f.server.publicKey,
+    })
+    expect(r.ok).toBe(false)
   })
 })

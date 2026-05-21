@@ -4,6 +4,7 @@
 
 import type {
   MasterSignedAssertionEnvelope,
+  OperatorLinkAssertionPayload,
   PublicKeyLike,
   PublicPrivateKeyLike,
   ServerLinkAssertionPayload,
@@ -46,6 +47,24 @@ export function approveServerSignIn (input: ApproveServerLinkInput): MasterSigne
   const userKey = asPublicPrivateKey(input.userKey, 'Ed25519')
   const payload: ServerSignInAssertionPayload = {
     kind: 'server-sign-in',
+    requestId: input.requestId,
+    serverPubKey: asPublicKey(input.serverPubKey).toHex(),
+    ts: input.ts ?? Date.now(),
+    userEncPubKey: asPublicKey(input.userEncPubKey).toHex(),
+    userId: input.userId,
+    userPubKey: userKey.publicKey.toHex(),
+    v: 1,
+  }
+  return buildPairingAssertion({
+    masterPrivKey: userKey.privateKey,
+    payload,
+  })
+}
+
+export function approveOperatorLink (input: ApproveServerLinkInput): MasterSignedAssertionEnvelope {
+  const userKey = asPublicPrivateKey(input.userKey, 'Ed25519')
+  const payload: OperatorLinkAssertionPayload = {
+    kind: 'operator-link',
     requestId: input.requestId,
     serverPubKey: asPublicKey(input.serverPubKey).toHex(),
     ts: input.ts ?? Date.now(),

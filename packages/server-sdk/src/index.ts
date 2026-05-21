@@ -54,6 +54,7 @@ export type {
 } from './verify.js'
 export {
   verifyAndPersist,
+  verifyOperatorLinkAssertion,
   verifyServerLinkAssertion,
   verifyServerSignInAssertion,
 } from './verify.js'

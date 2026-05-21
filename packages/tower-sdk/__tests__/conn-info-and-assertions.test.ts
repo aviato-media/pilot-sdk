@@ -16,7 +16,7 @@ import {
 } from '@aviato-media/pilot-core'
 import { describe, expect, test } from 'bun:test'
 
-import { approveServerLink, approveServerSignIn } from '../src/assertions.js'
+import { approveOperatorLink, approveServerLink, approveServerSignIn } from '../src/assertions.js'
 import { deriveConnInfoHash, resolveConnInfo } from '../src/conn-info.js'
 import { claimConnInfoKey } from '../src/pairing-response.js'
 
@@ -137,6 +137,45 @@ describe('approveServerSignIn', () => {
       expectedServerPubKey: server.publicKey,
     })
     expect(r.ok).toBe(true)
+  })
+  test('approveOperatorLink round-trip', () => {
+    const user = generateEd25519Keypair()
+    const userEnc = generateX25519Keypair()
+    const server = generateEd25519Keypair()
+    const env = approveOperatorLink({
+      requestId: 'req_operator_tower',
+      serverPubKey: server.publicKey.toRaw(),
+      userEncPubKey: userEnc.publicKey.toRaw(),
+      userId: 'user_test',
+      userKey: user,
+    })
+    const r = verifyPairingAssertion(env, {
+      expectedKind: 'operator-link',
+      expectedRequestId: 'req_operator_tower',
+      expectedServerPubKey: server.publicKey,
+    })
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.payload.kind).toBe('operator-link')
+    }
+  })
+  test('approveOperatorLink envelope rejected when verifying as server-link', () => {
+    const user = generateEd25519Keypair()
+    const userEnc = generateX25519Keypair()
+    const server = generateEd25519Keypair()
+    const env = approveOperatorLink({
+      requestId: 'req_kind_mismatch',
+      serverPubKey: server.publicKey.toRaw(),
+      userEncPubKey: userEnc.publicKey.toRaw(),
+      userId: 'user_test',
+      userKey: user,
+    })
+    const r = verifyPairingAssertion(env, {
+      expectedKind: 'server-link',
+      expectedRequestId: 'req_kind_mismatch',
+      expectedServerPubKey: server.publicKey,
+    })
+    expect(r.ok).toBe(false)
   })
 })
 

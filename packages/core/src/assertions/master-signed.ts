@@ -1,4 +1,5 @@
-// Build + verify M-signed pairing assertions (server-link, server-sign-in).
+// Build + verify M-signed pairing assertions (server-link, server-sign-in,
+// operator-link).
 //
 // Wire shape: { signedAssertionBytes: base64url(JCS(payload)), assertionSignature: base64url(Ed25519(M, JCS)) }.
 // Recipient (media server) verifies sig against `payload.userPubKey` lifted
@@ -10,15 +11,21 @@ import { asPrivateKey, asPublicKey } from '../crypto/keys.js'
 import { ed25519Sign, ed25519Verify } from '../crypto/signing.js'
 import type {
   MasterSignedAssertionEnvelope,
+  OperatorLinkAssertionPayload,
   ServerLinkAssertionPayload,
   ServerSignInAssertionPayload,
 } from '../schemas/assertions.js'
 import {
+  OperatorLinkAssertionPayloadSchema,
   ServerLinkAssertionPayloadSchema,
   ServerSignInAssertionPayloadSchema,
 } from '../schemas/assertions.js'
+import type { PairKind } from '../schemas/pairing.js'
 
-export type PairingAssertionPayload = ServerLinkAssertionPayload | ServerSignInAssertionPayload
+export type PairingAssertionPayload
+  = | ServerLinkAssertionPayload
+    | ServerSignInAssertionPayload
+    | OperatorLinkAssertionPayload
 
 export interface BuildAssertionInput {
   readonly payload: PairingAssertionPayload
@@ -52,7 +59,7 @@ export type AssertionVerifyError
   | 'stale'
 
 export interface VerifyAssertionOptions {
-  readonly expectedKind: 'server-link' | 'server-sign-in'
+  readonly expectedKind: PairKind
   /** Server Ed25519 pubkey (`PublicKey`, raw bytes, or hex string). */
   readonly expectedServerPubKey: PublicKeyLike
   readonly expectedRequestId?: string
@@ -62,6 +69,12 @@ export interface VerifyAssertionOptions {
   readonly maxAgeMs?: number
   readonly nowMs?: number
 }
+
+const ASSERTION_SCHEMA_BY_KIND = {
+  'operator-link': OperatorLinkAssertionPayloadSchema,
+  'server-link': ServerLinkAssertionPayloadSchema,
+  'server-sign-in': ServerSignInAssertionPayloadSchema,
+} as const
 
 export function verifyPairingAssertion (
   envelope: MasterSignedAssertionEnvelope,
@@ -79,9 +92,7 @@ export function verifyPairingAssertion (
     }
   }
 
-  const schema = opts.expectedKind === 'server-link'
-    ? ServerLinkAssertionPayloadSchema
-    : ServerSignInAssertionPayloadSchema
+  const schema = ASSERTION_SCHEMA_BY_KIND[opts.expectedKind]
   const parsed = schema.safeParse(parsedJson)
   if (!parsed.success) {
     return {

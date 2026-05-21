@@ -7,7 +7,7 @@
 // Success branches are branded VerifiedPairingAssertion values; the brand
 // is the only way PairingService.respondWithK accepts them at runtime.
 
-import type { MasterSignedAssertionEnvelope, PublicKeyLike } from '@aviato-media/pilot-core'
+import type { MasterSignedAssertionEnvelope, PairKind, PublicKeyLike } from '@aviato-media/pilot-core'
 import { verifyPairingAssertion } from '@aviato-media/pilot-core'
 
 import type { IdentityUserStore } from './stores.js'
@@ -74,30 +74,54 @@ export function verifyServerSignInAssertion (opts: VerifyServerSignInOptions): V
   })
 }
 
+export function verifyOperatorLinkAssertion (opts: VerifyServerLinkOptions): VerifyServerLinkResult {
+  const result = verifyPairingAssertion(opts.envelope, {
+    expectedKind: 'operator-link',
+    expectedRequestId: opts.expectedRequestId,
+    expectedServerPubKey: opts.expectedServerPubKey,
+    maxAgeMs: opts.maxAgeMs,
+  })
+  if (!result.ok) {
+    return {
+      error: result.error,
+      ok: false,
+    }
+  }
+  return brandVerifiedPairingAssertion({
+    userEncPubKey: result.payload.userEncPubKey,
+    userId: result.payload.userId,
+    userPubKey: result.payload.userPubKey,
+  })
+}
+
 export async function verifyAndPersist (input: {
   envelope: MasterSignedAssertionEnvelope
   expectedServerPubKey: PublicKeyLike
   expectedRequestId: string
   userStore: IdentityUserStore
-  kind?: 'server-link' | 'server-sign-in'
+  kind?: PairKind
 }): Promise<VerifyServerLinkResult> {
-  const verified = (input.kind === 'server-sign-in')
-    ? verifyServerSignInAssertion({
-      envelope: input.envelope,
-      expectedRequestId: input.expectedRequestId,
-      expectedServerPubKey: input.expectedServerPubKey,
-    })
-    : verifyServerLinkAssertion({
-      envelope: input.envelope,
-      expectedRequestId: input.expectedRequestId,
-      expectedServerPubKey: input.expectedServerPubKey,
-    })
+  const verifyOpts = {
+    envelope: input.envelope,
+    expectedRequestId: input.expectedRequestId,
+    expectedServerPubKey: input.expectedServerPubKey,
+  }
+  const verified = input.kind === 'server-sign-in'
+    ? verifyServerSignInAssertion(verifyOpts)
+    : input.kind === 'operator-link'
+      ? verifyOperatorLinkAssertion(verifyOpts)
+      : verifyServerLinkAssertion(verifyOpts)
   if (!verified.ok) {
     return verified
   }
-  const existing = await input.userStore.getByPublicKey(verified.userPubKey)
-  if (existing !== null) {
-    await input.userStore.upsertUserEncPubKey(existing.id, verified.userEncPubKey)
+  // operator-link's userEncPubKey is not a sealedbox target on this server;
+  // skip the upsert so an operator who is also a linked user keeps their
+  // rotation key intact.
+  if (input.kind !== 'operator-link') {
+    const existing = await input.userStore.getByPublicKey(verified.userPubKey)
+    if (existing !== null) {
+      await input.userStore.upsertUserEncPubKey(existing.id, verified.userEncPubKey)
+    }
   }
   return verified
 }

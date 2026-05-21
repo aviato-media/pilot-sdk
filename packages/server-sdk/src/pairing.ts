@@ -18,6 +18,7 @@
 import type {
   MasterSignedAssertionEnvelope,
   PairingResponsePayload,
+  PairKind,
   PublicKeyLike,
   PublicPrivateKey,
 } from '@aviato-media/pilot-core'
@@ -27,7 +28,11 @@ import type { PairingRequestRow, PairingRequestStore } from './stores.js'
 import type { TowerClient } from './tower-client.js'
 import type { VerifiedPairingAssertion } from './verified-assertion.js'
 import { isVerifiedPairingAssertion } from './verified-assertion.js'
-import { verifyServerLinkAssertion, verifyServerSignInAssertion } from './verify.js'
+import {
+  verifyOperatorLinkAssertion,
+  verifyServerLinkAssertion,
+  verifyServerSignInAssertion,
+} from './verify.js'
 
 export type { VerifiedPairingAssertion } from './verified-assertion.js'
 
@@ -40,7 +45,7 @@ export interface PairingHostConfig {
 }
 
 export interface StartPairingInput {
-  readonly kind?: 'server-link' | 'server-sign-in'
+  readonly kind?: PairKind
   readonly inviteToken?: string
   readonly localUserId?: string
   readonly scope?: readonly string[]
@@ -76,7 +81,9 @@ export class PairingService {
     })
     const purpose: PairingRequestRow['purpose'] = kind === 'server-sign-in'
       ? 'server-sign-in'
-      : input.inviteToken !== undefined ? 'invite' : 'link-existing-user'
+      : kind === 'operator-link'
+        ? 'operator-link'
+        : input.inviteToken !== undefined ? 'invite' : 'link-existing-user'
     const row: PairingRequestRow = {
       code: reg.code,
       createdAt: new Date().toISOString(),
@@ -154,25 +161,25 @@ export class PairingService {
     readonly requestId: string
     readonly connInfoKey: Uint8Array
     readonly envelope: MasterSignedAssertionEnvelope
-    readonly kind?: 'server-link' | 'server-sign-in'
+    readonly kind?: PairKind
     readonly expectedUserPubKey?: PublicKeyLike
     readonly maxAgeMs?: number
   }): Promise<PairingResponsePayload> {
     const kind = input.kind ?? 'server-link'
+    const verifyOpts = {
+      envelope: input.envelope,
+      expectedRequestId: input.requestId,
+      expectedServerPubKey: this.config.serverKey.publicKey,
+      maxAgeMs: input.maxAgeMs,
+    }
     const verified = kind === 'server-sign-in'
       ? verifyServerSignInAssertion({
-        envelope: input.envelope,
-        expectedRequestId: input.requestId,
-        expectedServerPubKey: this.config.serverKey.publicKey,
+        ...verifyOpts,
         expectedUserPubKey: input.expectedUserPubKey,
-        maxAgeMs: input.maxAgeMs,
       })
-      : verifyServerLinkAssertion({
-        envelope: input.envelope,
-        expectedRequestId: input.requestId,
-        expectedServerPubKey: this.config.serverKey.publicKey,
-        maxAgeMs: input.maxAgeMs,
-      })
+      : kind === 'operator-link'
+        ? verifyOperatorLinkAssertion(verifyOpts)
+        : verifyServerLinkAssertion(verifyOpts)
     if (!verified.ok) {
       throw new Error(`PairingService.respondWithKFromEnvelope: assertion verify failed (${verified.error})`)
     }

@@ -6,7 +6,7 @@ export interface PairingRequestRow {
   readonly code: string
   readonly inviteToken: string | null
   readonly localUserId: string | null
-  readonly purpose: 'invite' | 'link-existing-user' | 'server-sign-in'
+  readonly purpose: 'invite' | 'link-existing-user' | 'operator-link' | 'server-sign-in'
   readonly towerExpiresAt: string
   /** Tower's bearer used to poll this request. */
   readonly towerBearer?: string

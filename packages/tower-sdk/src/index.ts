@@ -1,7 +1,7 @@
 // Public surface of @aviato-media/pilot-tower-sdk.
 
 export type { ApproveServerLinkInput } from './assertions.js'
-export { approveServerLink, approveServerSignIn } from './assertions.js'
+export { approveOperatorLink, approveServerLink, approveServerSignIn } from './assertions.js'
 export type {
   BuildClientPairBundleInput,
   BuildClientPairCertInput,
