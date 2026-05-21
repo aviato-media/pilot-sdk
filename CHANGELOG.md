@@ -1,3 +1,13 @@
+## [1.7.0](https://github.com/aviato-media/pilot-sdk/compare/v1.6.1...v1.7.0) (2026-05-21)
+
+### Features
+
+* refactor PairingResponse to accept a serverKey as PublicPrivateKeyo ([b7adfab](https://github.com/aviato-media/pilot-sdk/commit/b7adfabb1be94d0ea4806265008a72201944c419))
+
+### Bug Fixes
+
+* WebCrypto in Chrome doesn't handle undefined ([3f7caae](https://github.com/aviato-media/pilot-sdk/commit/3f7caae276dd66fd030b21f4e65190538ea6c671))
+
 ## [1.6.1](https://github.com/aviato-media/pilot-sdk/compare/v1.6.0...v1.6.1) (2026-05-20)
 
 ### Bug Fixes
