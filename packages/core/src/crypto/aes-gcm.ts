@@ -33,7 +33,7 @@ export async function aesGcmEncrypt (
     {
       name: 'AES-GCM',
       iv: asBuffer(iv),
-      additionalData: aad ? asBuffer(aad) : undefined,
+      ...(aad ? { additionalData: asBuffer(aad) } : {}),
     },
     cryptoKey,
     asBuffer(plaintext),
@@ -59,7 +59,7 @@ export async function aesGcmDecrypt (
       {
         name: 'AES-GCM',
         iv: asBuffer(nonce),
-        additionalData: aad ? asBuffer(aad) : undefined,
+        ...(aad ? { additionalData: asBuffer(aad) } : {}),
       },
       cryptoKey,
       asBuffer(ciphertext),

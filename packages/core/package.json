@@ -65,10 +65,10 @@
     "prepack": "bun run build"
   },
   "dependencies": {
-    "@noble/curves": "^2.0.0",
-    "@noble/hashes": "^1.7.0",
-    "@scure/base": "^1.2.0",
-    "canonicalize": "^2.1.0",
+    "@noble/curves": "^2.2.0",
+    "@noble/hashes": "^2.2.0",
+    "@scure/base": "^2.2.0",
+    "canonicalize": "^3.0.0",
     "zod": "4.4.3"
   },
   "// @bun-upgrade": "",

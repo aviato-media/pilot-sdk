@@ -47,15 +47,15 @@ async function encryptInner (input: SealedBoxEncryptInput): Promise<{
   key: CryptoKey
   nonce: Uint8Array
 }> {
-  const recipientPubBytes = asPublicKey(input.recipientPub).toRaw()
+  const recipientPub = asPublicKey(input.recipientPub).toRaw()
   const ephPriv = x25519.utils.randomSecretKey()
   const ephPub = x25519.getPublicKey(ephPriv)
-  const shared = x25519.getSharedSecret(ephPriv, recipientPubBytes)
+  const shared = x25519.getSharedSecret(ephPriv, recipientPub)
   const key = await deriveSealedboxKey(shared)
   const nonce = crypto.getRandomValues(new Uint8Array(12))
   const ct = await crypto.subtle.encrypt(
     {
-      additionalData: input.aad ? asBuffer(input.aad) : undefined,
+      ...(input.aad ? { additionalData: asBuffer(input.aad) } : {}),
       iv: asBuffer(nonce),
       name: 'AES-GCM',
     },
@@ -87,8 +87,8 @@ export async function aviatoSealedBoxEncryptWithSelfCheck (input: SealedBoxEncry
   const { ct, ephPub, key, nonce } = await encryptInner(input)
   const plainCheck = await crypto.subtle.decrypt(
     {
-      additionalData: input.aad ? asBuffer(input.aad) : undefined,
-      iv: asBuffer(nonce),
+      ...(input.aad ? { additionalData: asBuffer(input.aad) } : {}),
+      iv: asBuffer(box.nonce),
       name: 'AES-GCM',
     },
     key,
@@ -128,7 +128,7 @@ export async function aviatoSealedBoxDecrypt (input: SealedBoxDecryptInput): Pro
       {
         name: 'AES-GCM',
         iv: asBuffer(nonce),
-        additionalData: input.aad ? asBuffer(input.aad) : undefined,
+        ...(input.aad ? { additionalData: asBuffer(input.aad) } : {}),
       },
       key,
       asBuffer(ct),
@@ -175,7 +175,7 @@ export async function aviatoSealedBoxDecryptHandle (input: SealedBoxDecryptHandl
       {
         name: 'AES-GCM',
         iv: asBuffer(nonce),
-        additionalData: input.aad ? asBuffer(input.aad) : undefined,
+        ...(input.aad ? { additionalData: asBuffer(input.aad) } : {}),
       },
       key,
       asBuffer(ct),

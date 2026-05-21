@@ -382,8 +382,7 @@ describe('pairing-response leg (server → user K delivery)', () => {
     const K = randomAesKey()
     const payload = await buildPairingResponse({
       connInfoKey: K,
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })
@@ -404,8 +403,7 @@ describe('pairing-response leg (server → user K delivery)', () => {
     const userEnc = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })
@@ -423,8 +421,7 @@ describe('pairing-response leg (server → user K delivery)', () => {
     const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: new Uint8Array(32),
       userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/all zeros/i)
@@ -435,8 +432,7 @@ describe('pairing-response leg (server → user K delivery)', () => {
     const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: new Uint8Array(16),
       userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/32 bytes/i)
@@ -448,8 +444,7 @@ describe('pairing-response leg (server → user K delivery)', () => {
     const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: server.publicKey,
       userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/serverPubKey|own server key/i)
@@ -466,8 +461,7 @@ describe('pairing-response leg (server → user K delivery)', () => {
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
       expectedUserEncPubKeyHex: '00'.repeat(32), // pretend the assertion bound key zeroes
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: otherEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/does not match|expectedUserEncPubKeyHex/i)
@@ -475,8 +469,7 @@ describe('pairing-response leg (server → user K delivery)', () => {
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
       expectedUserEncPubKeyHex: Array.from(userEnc.publicKey.toRaw()).map((b) => b.toString(16).padStart(2, '0')).join(''),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: otherEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/does not match|expectedUserEncPubKeyHex/i)
@@ -491,8 +484,7 @@ describe('pairing-response leg (server → user K delivery)', () => {
     const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userMaster.publicKey,
       userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/equals userPubKey|master Ed25519/i)
@@ -639,8 +631,7 @@ describe('adversarial: openPairingResponse rejects tampered sig', () => {
     const userEnc = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })
@@ -668,8 +659,7 @@ describe('adversarial: openPairingResponse rejects tampered sig', () => {
     const userEnc = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })
@@ -1101,8 +1091,7 @@ describe('PublicKeyLike at SDK boundaries (smoke)', () => {
     const userEnc = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })
@@ -1590,8 +1579,7 @@ describe('pairing-response: assertValidRecipient + sealed-shape errors', () => {
     const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: new Uint8Array(32),
       userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/all zeros/)
@@ -1601,8 +1589,7 @@ describe('pairing-response: assertValidRecipient + sealed-shape errors', () => {
     const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: new Uint8Array(31),
       userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/32 bytes/)
@@ -1612,8 +1599,7 @@ describe('pairing-response: assertValidRecipient + sealed-shape errors', () => {
     const userMaster = generateEd25519Keypair()
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: server.publicKey,
       userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/equals serverPubKey/)
@@ -1626,8 +1612,7 @@ describe('pairing-response: assertValidRecipient + sealed-shape errors', () => {
     await expect(buildPairingResponse({
       connInfoKey: randomAesKey(),
       expectedUserEncPubKeyHex: hexEncode(otherEnc.publicKey),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })).rejects.toThrow(/userEncPubKey does not match/)
@@ -1639,8 +1624,7 @@ describe('pairing-response: assertValidRecipient + sealed-shape errors', () => {
     const other = generateX25519Keypair()
     const payload = await buildPairingResponse({
       connInfoKey: randomAesKey(),
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })
@@ -2037,8 +2021,7 @@ describe('sealedbox: self-check + recipient_priv_mismatch', () => {
     const K = randomAesKey()
     const payload = await buildPairingResponse({
       connInfoKey: K,
-      serverPrivKey: server.privateKey,
-      serverPubKey: server.publicKey,
+      serverKey: server,
       userEncPubKey: userEnc.publicKey,
       userPubKey: userMaster.publicKey,
     })
