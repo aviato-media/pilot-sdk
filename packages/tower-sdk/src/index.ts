@@ -13,6 +13,20 @@ export type {
 } from './conn-info.js'
 export { deriveConnInfoHash, resolveConnInfo } from './conn-info.js'
 export type {
+  KvBatchResult,
+  KvRow,
+  KvStore,
+  KvStorePutInput,
+  MemoryKvStoreOptions,
+} from './kv-store.js'
+export {
+  decodePutItem,
+  MemoryKvStore,
+  partitionBatchGet,
+  sha256OfCiphertext,
+  toListEntry,
+} from './kv-store.js'
+export type {
   ClaimConnInfoKeyInput,
   ClaimConnInfoKeyResult,
 } from './pairing-response.js'

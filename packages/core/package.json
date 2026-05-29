@@ -46,6 +46,11 @@
       "import": "./dist/conn-info/index.js",
       "default": "./dist/conn-info/index.js"
     },
+    "./kv": {
+      "types": "./dist/kv/index.d.ts",
+      "import": "./dist/kv/index.js",
+      "default": "./dist/kv/index.js"
+    },
     "./revocation": {
       "types": "./dist/revocation/index.d.ts",
       "import": "./dist/revocation/index.js",

@@ -20,6 +20,16 @@ export {
 } from './identity-client.js'
 export type { KeyOps } from './key-ops.js'
 export type {
+  KVGetResult,
+  KVListEntry,
+  KVPutAcceptedEntry,
+  KVPutItem,
+  KVPutResult,
+  KVStoreOptions,
+  PilotKVStore,
+} from './kv-client.js'
+export { KVError, KVStoreClient, recomputeKvChecksum } from './kv-client.js'
+export type {
   ServerCertAuthInput,
   ServerCertAuthInputOps,
   ServerCertAuthInputRaw,

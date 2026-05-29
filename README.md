@@ -32,6 +32,15 @@ Pilot's License resolves that tension. Each user holds a single license in a vau
 
 The wire format that ties all three sides together (Ed25519 signatures, X25519 sealed boxes, JCS canonicalized payloads, AES GCM symmetric encryption) lives in [`@aviato-media/pilot-core`](packages/core) and is reused by every SDK in this repo.
 
+## Encrypted KV sync
+
+In addition to the identity protocol, the SDKs ship an encrypted key/value sync surface so client apps can mirror settings, non-Aviato server connections, and cross-app media progress through Tower without depending on any single Aviato media server being online. Tower stores ciphertext only.
+
+- `KVStoreClient` in `@aviato-media/pilot-client-sdk` exposes `batchGet`, `batchPut`, `delete`, and `list`. Callers pass plaintext `Uint8Array` values; the SDK seals each blob under a per-user 32 byte AES GCM 256 key with AAD `aviato-kv-blob-v1 ‖ utf8(keyString)` so a ciphertext cannot be replayed under a different key.
+- Wire envelope per blob is `nonce(12) ‖ aesGcmCiphertext`, base64url encoded. Tower also stores `sha256(wireBytes)` per row. Clients pass the same hash as `knownChecksum` on read to skip the blob payload, and as `expectedChecksum` on write to assert an optimistic concurrency token.
+- `MemoryKvStore` in `@aviato-media/pilot-tower-sdk` is a persistence agnostic backend implementing the same `KvStore` abstraction the upcoming `tower-api` route layer will mount onto its DynamoDB rows. The helpers `partitionBatchGet`, `decodePutItem`, `toListEntry`, and `sha256OfCiphertext` keep the wire shape consistent between the SDK and the eventual server.
+- All wire schemas live in `@aviato-media/pilot-core` under the `./kv` subpath (`KvBatchGetRequestSchema`, `KvBatchPutRequestSchema`, `KvListResponseSchema`, `KvErrorResponseSchema`, `KvQuotaSchema`).
+
 ## Development
 
 ```sh
