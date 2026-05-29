@@ -1,6 +1,6 @@
 {
   "name": "@aviato-media/pilot-server-sdk",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Aviato Pilot's License — media-server SDK. Drive pairing flows with Tower, verify master-signed assertions + delegation certs, publish encrypted connection-info, deliver per-server K to paired users.",
   "license": "MIT",
   "repository": {

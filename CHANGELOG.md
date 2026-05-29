@@ -1,3 +1,9 @@
+## [1.9.0](https://github.com/aviato-media/pilot-sdk/compare/v1.8.0...v1.9.0) (2026-05-29)
+
+### Features
+
+* encrypted KV storage to support client app syncing ([23cd886](https://github.com/aviato-media/pilot-sdk/commit/23cd88601edbc0c9e64f0ecaadb469b3f882b5fc))
+
 ## [1.8.0](https://github.com/aviato-media/pilot-sdk/compare/v1.7.0...v1.8.0) (2026-05-21)
 
 ### Features
